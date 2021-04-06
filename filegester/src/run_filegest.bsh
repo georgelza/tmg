@@ -1,0 +1,15 @@
+
+export DEBUGLEVEL=1
+export TESTSIZE=9
+
+export FILEDIR=input_data
+export DATAFILE=people.csv
+
+export KAFKA_BROKER=localhost
+export KAFKA_PORT=9092
+export TOPIC=people_pb
+
+go run -v filegester.go
+
+# https://docs.confluent.io/platform/current/app-development/kafkacat-usage.html
+# kafkacat -b localhost:9092 -t people_pb

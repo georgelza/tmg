@@ -1,0 +1,10 @@
+grpc_server:
+  port: 9010
+  name: localhost
+
+database:
+  dbname: 
+  dbuser: "dbuser"
+  dbpassword: "dbpassword"
+
+DEBUGLEVEL: 1

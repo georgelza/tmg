@@ -1,0 +1,8 @@
+
+# This will go back in when we move into the K8S cluster, for now we're using config.yml
+#
+# export DEBUGLEVEL=1
+# export GRPC_SERVER=localhost
+# export GRPC_PORT=9010
+
+go run -v server.go

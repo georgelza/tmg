@@ -1,0 +1,3 @@
+
+cd src
+docker build --tag=poster_term .

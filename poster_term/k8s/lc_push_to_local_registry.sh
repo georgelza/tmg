@@ -1,0 +1,2 @@
+docker tag psplogger_image localhost:5000/psplogger_image
+docker push localhost:5000/psplogger_image

@@ -1,0 +1,14 @@
+
+export DEBUGLEVEL=2
+
+export KAFKA_BROKER=localhost
+export KAFKA_PORT=9092
+export TOPIC=people_pb
+
+export GRPC_SERVER=localhost
+export GRPC_PORT=9010
+
+go run -v scrubber.go
+
+# https://docs.confluent.io/platform/current/app-development/kafkacat-usage.html
+# kafkacat -b localhost:9092 -t people_pb

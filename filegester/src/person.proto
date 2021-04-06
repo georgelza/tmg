@@ -1,0 +1,34 @@
+//
+//  cd <app_root>
+//  protoc ./person.proto --go_out=plugins=grpc:person
+//
+
+syntax = "proto3";
+
+package person;
+
+option go_package = "/;person";
+
+message Message {
+    string id = 1;
+    string timestamp = 2;
+    string source = 3;
+    string seq = 4;
+    string alpha = 5;
+    string last = 6;
+    string first = 7;
+    string birthday = 8;
+    string gender = 9;
+    string email = 10;
+    string street = 11;
+    string state = 12;
+    string city = 13;
+    string zip = 14;
+    string ccnumber = 15;
+    string date = 16;
+    string latitude = 17;
+    string longitude = 18;
+    string dollar = 19;
+    string body = 20;
+}
+
