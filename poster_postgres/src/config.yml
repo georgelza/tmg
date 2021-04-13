@@ -1,0 +1,11 @@
+grpc_server:
+  port: 9010
+  name: localhost
+
+database:
+  username: postgres
+  dbhost: localhost
+  dbport: 5432
+  dbname: json
+
+debuglevel: 1

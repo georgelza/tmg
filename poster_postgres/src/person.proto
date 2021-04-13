@@ -1,0 +1,42 @@
+//
+//  cd <app_root>
+//  protoc ./person.proto --go_out=plugins=grpc:person
+//
+
+syntax = "proto3";
+
+package person;
+
+option go_package = "/;person";
+
+message Message {
+    string uuid = 1;
+    string path = 2;
+    string seq = 3;
+    string alpha = 4;
+    string last = 5;
+    string first = 6;
+    string birthday = 7;
+    string gender = 8;
+    string email = 9;
+    string street = 10;
+    string state = 11;
+    string city = 12;
+    string zip = 13;
+    string ccnumber = 14;
+    string date = 15;
+    string latitude = 16;
+    string longitude = 17;
+    string dollar = 18;
+    string note = 19;
+}
+
+message Response {
+    string uuid = 1;
+    string path = 2;
+    string note = 3;
+}
+
+service DataSaver {
+  rpc PostData(Message) returns (Response) {}
+}
