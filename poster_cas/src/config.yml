@@ -1,0 +1,12 @@
+grpc_server:
+  port: 9010
+  name: localhost
+
+database:
+  username: golang
+  password: dsfsdfasda
+  dbhost: localhost
+  dbport: 9042
+  dbkeyspace: json
+
+debuglevel: 1

@@ -19,9 +19,8 @@ type Server struct {
 }
 
 type messageJSON struct {
-	Id        string `json:"id"`
-	Timestamp string `json:"timestamp"`
-	Source    string `json:"source"`
+	Uuid      string `json:"uuid"`
+	Path      string `json:"path"`
 	Seq       string `json:"seq"`
 	Alpha     string `json:"alpha"`
 	Last      string `json:"last"`
@@ -38,10 +37,10 @@ type messageJSON struct {
 	Latitude  string `json:"latitude"`
 	Longitude string `json:"longitude"`
 	Dollar    string `json:"dollar"`
-	Body      string `json:"body"`
+	Note      string `json:"note"`
 }
 
-func (s *Server) PostData(ctx context.Context, message *Message) (*Message, error) {
+func (s *Server) PostData(ctx context.Context, message *Message) (*Response, error) {
 
 	// Lets identify ourself
 	var vHostname, e1 = os.Hostname()
@@ -50,9 +49,8 @@ func (s *Server) PostData(ctx context.Context, message *Message) (*Message, erro
 	}
 
 	msgJSON := &messageJSON{
-		Id:        message.Id,
-		Timestamp: message.Timestamp,
-		Source:    message.Source,
+		Uuid:      message.Uuid,
+		Path:      message.Path,
 		Seq:       message.Seq,
 		Alpha:     message.Alpha,
 		Last:      message.Last,
@@ -69,20 +67,58 @@ func (s *Server) PostData(ctx context.Context, message *Message) (*Message, erro
 		Latitude:  message.Latitude,
 		Longitude: message.Longitude,
 		Dollar:    message.Dollar,
-		Body:      message.Body,
+		Note:      message.Note,
 	}
 
-	msgJSON.Timestamp += "(" + time.Now().Format("02-01-2006 - 15:04:05.0000") + ")"
-	msgJSON.Source += "(" + vHostname + ")"
+	msgJSON.Path += ",Poster_Term:[" + vHostname + "," + time.Now().Format("02-01-2006 - 15:04:05.0000") + "]"
 
 	prettyPrintJSON(msgJSON)
 
 	// Now this is where we're going to be inserting/updating aka upserting into the various DB's.
-	//
-	//
-	//
+	/*
+					https://www.bmc.com/blogs/using-json-with-cassandra/
 
-	return &Message{Body: "Heelo from the Server! :"}, nil
+
+					create keyspace json with REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 2 };
+
+					create table books (isbn text primary key, title text, publisher text);
+
+					insert into books JSON '{"isbn": "123",
+					"title": "The Magic Mountain", "publisher": "Knofp"}';
+
+					select * from books;
+
+
+					use json;
+					CREATE type json.sale ( id int, item text, amount int );
+					CREATE TABLE json.customers ( id int  PRIMARY KEY, name text, balance int, sales list> );
+
+					INSERT INTO json.customers (id, name, balance, sales)
+					VALUES (123, 'Greenville Hardware', 700,
+				 	[{ id: 5544, item : 'tape', amount : 100},
+				  	{ id: 5545, item : 'wire', amount : 200}]) ;
+
+					  select * from customers;
+
+					  select id, toJson(sales) from customers;
+
+					  https://docs.datastax.com/en/cql-oss/3.3/cql/cql_using/useInsertJSON.html
+
+					  INSERT INTO cycling.cyclist_category JSON '{
+		  				"category" : "GC",
+		  				"points" : 780,
+						"id" : "829aa84a-4bba-411f-a4fb-38167a987cda",
+		  				"lastname" : "SUTHERLAND" }';
+
+	*/
+
+	response := &Response{
+		Uuid: msgJSON.Uuid,
+		Path: msgJSON.Path,
+		Note: "Processed",
+	}
+
+	return response, nil
 
 }
 
@@ -90,11 +126,7 @@ func (s *Server) PostData(ctx context.Context, message *Message) (*Message, erro
 func prettyPrintJSON(v interface{}) {
 	tmpBArray, err := json.MarshalIndent(v, "", "    ")
 	if err == nil {
-		//log.Printf("Message:\n%s\n", tmpBArray)
 		grpcLog.Infof("Message:\n%s\n", tmpBArray)
-
-		//fmt.Print("Message: ", tmpBArray, "\n\n") // raw serialized
-		//grpcLog.Info("Message:\n%s\n", tmpBArray) // raw serialized
 
 	} else {
 		grpcLog.Error("Really!?!? How is this possible:", err)

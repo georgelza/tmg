@@ -42,6 +42,18 @@
 *	How to read yml file, nice easy tutorial.
 *	https://medium.com/@bnprashanth256/reading-configuration-files-and-environment-variables-in-go-golang-c2607f912b63
 *
+*	How to Secure via TLS: See :
+*	https://medium.com/pantomath/how-we-use-grpc-to-build-a-client-server-system-in-go-dd20045fa1c2
+*
+*	How to implement Logging via grpcLog :
+*	https://github.com/tensor-programming/docker_grpc_chat_tutorial
+*	https://www.honeybadger.io/blog/golang-logging/
+*	https://golang.org/pkg/log/
+*	https://www.datadoghq.com/blog/go-logging/
+*	https://medium.com/@pradityadhitama/simple-logger-in-golang-f72dadf2c8c6
+*
+*
+*
  */
 
 package main
@@ -80,6 +92,8 @@ func main() {
 	fmt.Println("###############################################################")
 	fmt.Println("")
 
+	/***** Retrieve variables from config.yml *****/
+
 	/*
 		// gRPC Configuration - reintroduce when we go into K8S cluster.
 		var vGRPC_Server = os.Getenv("GRPC_SERVER")
@@ -112,8 +126,8 @@ func main() {
 
 	// Reading variables using the model
 	grpcLog.Info("Reading variables using the model..")
-	grpcLog.Info("Port is\t\t", configuration.GRPC_Server.Port)
-	grpcLog.Info("Name is\t\t", configuration.GRPC_Server.Name)
+	grpcLog.Info("gRPC Port is\t\t", configuration.GRPC_Server.Port)
+	grpcLog.Info("gRPC Name is\t\t", configuration.GRPC_Server.Name)
 	grpcLog.Info("DEBUGLEVEL is\t\t", configuration.DEBUGLEVEL)
 
 	grpcLog.Info("")
@@ -124,13 +138,16 @@ func main() {
 
 	}
 
-	grpcLog.Info("Starting server at port :", configuration.GRPC_Server.Port)
+	grpcLog.Info("create a listener on TCP port :", configuration.GRPC_Server.Port)
 
 	server := person.Server{}
+	grpcLog.Info("create a server instance")
 
 	grpcServer := grpc.NewServer()
+	grpcLog.Info("create a gRPC server object")
 
 	person.RegisterDataSaverServer(grpcServer, &server)
+	grpcLog.Info("attach the DataSaver service to the server")
 
 	if err := grpcServer.Serve(listener); err != nil {
 		grpcLog.Info("Failed to serve: %s", err)

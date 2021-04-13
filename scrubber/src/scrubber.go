@@ -44,6 +44,12 @@
 *
 *	Look at rewriting consumer using code from: https://github.com/meitu/go-consumergroup/blob/master/example/example.go
 *
+*	How to Secure via TLS: See :
+*	https://medium.com/pantomath/how-we-use-grpc-to-build-a-client-server-system-in-go-dd20045fa1c2
+*
+*	How to implement Logging via grpcLog :
+*	https://github.com/tensor-programming/docker_grpc_chat_tutorial
+*
  */
 
 package main
@@ -51,7 +57,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"time"
@@ -87,29 +92,37 @@ func main() {
 	// Lets manage how much we prnt to the screen
 	var vDebugLevel, e1 = strconv.Atoi(os.Getenv("DEBUGLEVEL"))
 	if e1 != nil {
-		log.Fatalf("string to Int convert error: %s", e1)
+		grpcLog.Error("String to Int convert error: %s", e1)
 
 	}
+	grpcLog.Info("Debug Level     : ", vDebugLevel)
 
 	// Lets identify ourself
 	var vHostname, e2 = os.Hostname()
-	if e2 != nil {
-		log.Fatalf("Can't retrieve hostname", e2)
+	if e1 != nil {
+		grpcLog.Error("Can't retrieve hostname", e2)
 	}
 
 	// gRPC Configuration
 	var vGRPC_Server = os.Getenv("GRPC_SERVER")
 	var vGRPC_Port = os.Getenv("GRPC_PORT")
+	grpcLog.Info("gRPC Server     : ", vGRPC_Server)
+	grpcLog.Info("gRPC Port       : ", vGRPC_Port)
+
+	// Broker Configuration
+	var vKafka_Broker = os.Getenv("KAFKA_BROKER")
+	var vKafka_Port = os.Getenv("KAFKA_PORT")
+	grpcLog.Info("Kafka Broker    : ", vKafka_Broker)
+	grpcLog.Info("Kafka Port      : ", vKafka_Port)
 
 	// --
 	// The topic is passed as a pointer to the Consumer, so we can't
 	// use a hard-coded literal. And a variable is a nicer way to do
 	// it anyway ;-)
 	var vTopic = os.Getenv("TOPIC")
+	grpcLog.Info("Kafka Topic     : ", vTopic)
 
-	// Broker Configuration
-	var vKafka_Broker = os.Getenv("KAFKA_BROKER")
-	var vKafka_Port = os.Getenv("KAFKA_PORT")
+	fmt.Println("")
 
 	// --
 	// Create Consumer instance
@@ -130,16 +143,15 @@ func main() {
 		if ke, ok := e.(kafka.Error); ok == true {
 			switch ec := ke.Code(); ec {
 			case kafka.ErrInvalidArg:
-				log.Fatalf("😢 Can't create the Consumer because you've configured it wrong (code: %d)!\n\t%v\n\nTo see the configuration options, refer to https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md", ec, e)
+				grpcLog.Fatalf("😢 Can't create the Consumer because you've configured it wrong (code: %d)!\n\t%v\n\nTo see the configuration options, refer to https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md", ec, e)
 
 			default:
-				grpcLog.Errorf("😢 Can't create the Consumer (Kafka error code %d)\n\tError: %v\n", ec, e)
-				log.Fatalf("😢 Can't create the Consumer (Kafka error code %d)\n\tError: %v\n", ec, e)
+				grpcLog.Fatalf("😢 Can't create the Consumer (Kafka error code %d)\n\tError: %v\n", ec, e)
 
 			}
 		} else {
 			// It's not a kafka.Error
-			log.Fatalf("😢 Oh noes, there's a generic error creating the Consumer! %v", e.Error())
+			grpcLog.Fatalf("😢 Oh noes, there's a generic error creating the Consumer! %v", e.Error())
 
 		}
 
@@ -149,7 +161,7 @@ func main() {
 		var conn *grpc.ClientConn
 		conn, err := grpc.Dial(vGRPC_Server+":"+vGRPC_Port, grpc.WithInsecure())
 		if err != nil {
-			log.Fatalf("gRPC client connection failed: %s", err)
+			grpcLog.Fatalf("gRPC client connection failed: %s", err)
 
 		}
 		defer conn.Close()
@@ -158,10 +170,10 @@ func main() {
 
 		// Subscribe to the topic
 		if e := c.Subscribe(vTopic, nil); e != nil {
-			log.Fatalf("☠️ Uh oh, there was an error subscribing to the topic :\n\t%v\n", e)
+			grpcLog.Fatalf("☠️ Uh oh, there was an error subscribing to the topic :\n\t%v\n", e)
 
 		} else {
-			fmt.Printf("gRPC client connection established: \n\n")
+			grpcLog.Info("gRPC client connection established: \n\n")
 
 			run := true
 			for run == true {
@@ -170,7 +182,7 @@ func main() {
 				switch e := ev.(type) {
 				case *kafka.Message:
 					if vDebugLevel > 1 {
-						fmt.Printf("\n%% Message on %s: %s", e.TopicPartition, e.Value, "\n\n")
+						grpcLog.Infof("\n%% Message on %s: %s", e.TopicPartition, e.Value, "\n\n")
 
 					}
 
@@ -178,37 +190,34 @@ func main() {
 					message := &person.Message{}
 					err := proto.Unmarshal(e.Value, message)
 					if err != nil {
-						log.Fatal("unmarshaling error: ", err)
+						grpcLog.Fatal("unmarshaling error: ", err)
 
 					}
 
-					message.Timestamp += "(" + time.Now().Format("02-01-2006 - 15:04:05.0000") + "),"
-					message.Source += "(" + vHostname + " " + e.TopicPartition.String() + "),"
+					message.Path += ",Scrubber:[" + vHostname + "," + time.Now().Format("02-01-2006 - 15:04:05.0000") + "]"
 
 					// Marshal message into serializedPerson
 					serializedPerson, err := proto.Marshal(message)
 					if vDebugLevel == 1 {
-						fmt.Println(serializedPerson)
+						fmt.Print(serializedPerson)
 					}
 
 					// Posting to the gRPC end point living on the server
 					response, err := cgRPC.PostData(context.Background(), message)
 					if err != nil {
-						fmt.Print("Error when calling PostData: ", err)
+						//fmt.Print("Error when calling PostData: ", err)
 						//fmt.Print("Error when calling PostData: %s", err)
 						//log.Fatalf("Error when calling PostData: %s", err)
-						//grpcLog.Errorf("Error when calling PostData: %s", err)
+						grpcLog.Errorf("Error when calling PostData: %s", err)
 
 					}
-					fmt.Printf("\nResponse from server: %s", response.Body)
+					grpcLog.Infof("Response from server: %s ", fmt.Sprintf("%s: %s", response.Uuid, response.Note))
 
 				case kafka.PartitionEOF:
-					fmt.Printf("\n%% Reached %v\n", e)
-					//grpcLog.Info("%% Reached %v\n", e)
+					grpcLog.Infof("Reached %v\n", e)
 
 				case kafka.Error:
-					fmt.Fprintf(os.Stderr, "%% Error: %v\n", e)
-					//grpcLog.Errorf("%% Error: %v\n", e)
+					grpcLog.Errorf("Error: %v\n", e)
 
 					run = false
 

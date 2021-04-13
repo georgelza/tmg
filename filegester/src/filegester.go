@@ -49,17 +49,25 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	glog "google.golang.org/grpc/grpclog"
+
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/georgelza/tmg_filegester/person"
+	guuid "github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 )
+
+var grpcLog glog.LoggerV2
+
+func init() {
+	grpcLog = glog.NewLoggerV2(os.Stdout, os.Stdout, os.Stdout)
+}
 
 func main() {
 
@@ -75,36 +83,45 @@ func main() {
 	fmt.Println("###############################################################")
 	fmt.Println("")
 
-	var vTestSize, e2 = strconv.Atoi(os.Getenv("TESTSIZE"))
-	if e2 != nil {
-		PrintFatalErr("string conver error", e2)
+	var vTestSize, e1 = strconv.Atoi(os.Getenv("TESTSIZE"))
+	if e1 != nil {
+		grpcLog.Error("String to Int convert error: %s", e1)
 	}
+	grpcLog.Info("Test Size       : ", vTestSize)
 
 	// Lets manage how much we prnt to the screen
-	var vDebugLevel, e1 = strconv.Atoi(os.Getenv("DEBUGLEVEL"))
-	if e1 != nil {
-		PrintFatalErr("string conver error", e1)
+	var vDebugLevel, e2 = strconv.Atoi(os.Getenv("DEBUGLEVEL"))
+	if e2 != nil {
+		grpcLog.Error("String to Int convert error: %s", e2)
 	}
+	grpcLog.Info("Debug Level     : ", vDebugLevel)
 
 	// Lets identify ourself
 	var vHostname, e3 = os.Hostname()
 	if e3 != nil {
-		PrintFatalErr("Can't retrieve hostname", e3)
+		grpcLog.Error("Can't retrieve hostname", e3)
 	}
 
 	// File and directory
 	var vFileDir = os.Getenv("FILEDIR")
 	var vDataFile = os.Getenv("DATAFILE")
+	grpcLog.Info("FILEDIR         : ", vFileDir)
+	grpcLog.Info("DATAFILE        : ", vDataFile)
+
+	// Broker Configuration
+	var vKafka_Broker = os.Getenv("KAFKA_BROKER")
+	var vKafka_Port = os.Getenv("KAFKA_PORT")
+	grpcLog.Info("Kafka Broker    : ", vKafka_Broker)
+	grpcLog.Info("Kafka Port      : ", vKafka_Port)
 
 	// --
 	// The topic is passed as a pointer to the Producer, so we can't
 	// use a hard-coded literal. And a variable is a nicer way to do
 	// it anyway ;-)
 	var vTopic = os.Getenv("TOPIC")
+	grpcLog.Info("Kafka Topic     : ", vTopic)
 
-	// Broker Configuration
-	var vKafka_Broker = os.Getenv("KAFKA_BROKER")
-	var vKafka_Port = os.Getenv("KAFKA_PORT")
+	fmt.Println("")
 
 	// --
 	// Create Producer instance
@@ -120,24 +137,20 @@ func main() {
 
 	// Check for errors in creating the Producer
 	if err != nil {
-		PrintFatalErr("😢Oh noes, there's an error creating the Producer! ", err)
+		grpcLog.Errorf("😢Oh noes, there's an error creating the Producer! ", err)
 
 		if ke, ok := err.(kafka.Error); ok == true {
 			switch ec := ke.Code(); ec {
 			case kafka.ErrInvalidArg:
-				fmt.Printf("😢 Can't create the producer because you've configured it wrong (code: %d)!\n\t%v\n\nTo see the configuration options, refer to https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md", ec, err)
-			//	log.Fatal("😢 Can't create the producer because you've configured it wrong (code: %d)!\n\t%v\n\nTo see the configuration options, refer to https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md", ec, err)
+				grpcLog.Fatalf("😢 Can't create the producer because you've configured it wrong (code: %d)!\n\t%v\n\nTo see the configuration options, refer to https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md", ec, err)
 
 			default:
-				fmt.Printf("😢 Can't create the producer (Kafka error code %d)\n\tError: %v\n", ec, err)
-				//	log.Fatal("😢 Can't create the producer (Kafka error code %d)\n\tError: %v\n", ec, err)
+				grpcLog.Fatalf("😢 Can't create the producer (Kafka error code %d)\n\tError: %v\n", ec, err)
 			}
 
 		} else {
 			// It's not a kafka.Error
-			//	fmt.Printf("😢 Oh noes, there's a generic error creating the Producer! %v", err.Error())
-			fmt.Printf("😢 Oh noes, there's a generic error creating the Producer! %v", err.Error())
-			//	log.Fatal("😢 Oh noes, there's a generic error creating the Producer! %v", err.Error())
+			grpcLog.Fatalf("😢 Oh noes, there's a generic error creating the Producer! %v", err.Error())
 
 		}
 		// call it when you know it's broken
@@ -162,7 +175,7 @@ func main() {
 		// Open my source file
 		f_InputData, err := os.Open(vFile)
 		if err != nil {
-			PrintFatalErr("Error happened while processing", err)
+			grpcLog.Errorf("Error happened while processing", err)
 
 		}
 		defer f_InputData.Close()
@@ -178,8 +191,8 @@ func main() {
 				// Split the file based on comman's into a array
 				s := strings.Split(scanner.Text(), ",")
 				message := &person.Message{
-					Timestamp: "(" + time.Now().Format("02-01-2006 - 15:04:05.0000") + "),",
-					Source:    "(" + vHostname + "),",
+					Uuid:      guuid.New().String(),
+					Path:      "FileGester:[" + vHostname + "," + time.Now().Format("02-01-2006 - 15:04:05.0000") + "]",
 					Seq:       s[0],
 					Alpha:     s[1],
 					First:     s[2],
@@ -196,12 +209,12 @@ func main() {
 					Latitude:  s[13],
 					Longitude: s[14],
 					Dollar:    s[15],
-					Body:      "",
+					Note:      "",
 				}
 
 				serializedPerson, err := proto.Marshal(message)
 				if err != nil {
-					PrintFatalErr("Marchalling error: ", err)
+					grpcLog.Errorf("Marchalling error: ", err)
 
 				}
 
@@ -238,6 +251,7 @@ func main() {
 											string(km.Value),
 											string(*km.TopicPartition.Topic),
 											km.TopicPartition.Error)
+
 									}
 
 								} else {
@@ -254,8 +268,7 @@ func main() {
 							case kafka.Error:
 								// It's an error
 								em := ev.(kafka.Error)
-								fmt.Printf("☠️ Uh oh, caught an error:\n\t%v\n", em)
-								//			log.Fatal("☠️ Uh oh, caught an error:\n\t%v\n", em)
+								grpcLog.Errorf("☠️ Uh oh, caught an error:\n\t%v\n", em)
 
 								//default:
 								// It's not anything we were expecting
@@ -273,8 +286,7 @@ func main() {
 				// This is where we publish message onto the topic... on the cluster
 				// Produce the message
 				if e := p.Produce(&kafkaMsg, nil); e != nil {
-					fmt.Printf("😢 Darn, there's an error producing the message! %v", e.Error())
-					log.Fatal("😢 Darn, there's an error producing the message!", e.Error())
+					grpcLog.Fatalf("😢 Darn, there's an error producing the message!", e.Error())
 
 				}
 
@@ -302,10 +314,10 @@ func main() {
 		// Flush the Producer queue
 		t := 10000
 		if r := p.Flush(t); r > 0 {
-			fmt.Printf("\n--\n⚠️ Failed to flush all messages after %d milliseconds. %d message(s) remain\n", t, r)
+			grpcLog.Errorf("\n--\n⚠️ Failed to flush all messages after %d milliseconds. %d message(s) remain\n", t, r)
 
 		} else {
-			fmt.Println("\n--\n✨ All messages flushed from the queue")
+			grpcLog.Infoln("\n--\n✨ All messages flushed from the queue")
 
 		}
 		// --
@@ -318,15 +330,4 @@ func main() {
 		defer p.Close()
 
 	}
-}
-
-// Log error to Syslog
-func PrintFatalErr(vErrorMessage string, err error) {
-	if err != nil {
-
-		log.Fatal(vErrorMessage, err)
-		fmt.Println(vErrorMessage, err)
-
-	}
-
 }

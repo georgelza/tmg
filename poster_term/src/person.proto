@@ -10,28 +10,33 @@ package person;
 option go_package = "/;person";
 
 message Message {
-    string id = 1;
-    string timestamp = 2;
-    string source = 3;
-    string seq = 4;
-    string alpha = 5;
-    string last = 6;
-    string first = 7;
-    string birthday = 8;
-    string gender = 9;
-    string email = 10;
-    string street = 11;
-    string state = 12;
-    string city = 13;
-    string zip = 14;
-    string ccnumber = 15;
-    string date = 16;
-    string latitude = 17;
-    string longitude = 18;
-    string dollar = 19;
-    string body = 20;
+    string uuid = 1;
+    string path = 2;
+    string seq = 3;
+    string alpha = 4;
+    string last = 5;
+    string first = 6;
+    string birthday = 7;
+    string gender = 8;
+    string email = 9;
+    string street = 10;
+    string state = 11;
+    string city = 12;
+    string zip = 13;
+    string ccnumber = 14;
+    string date = 15;
+    string latitude = 16;
+    string longitude = 17;
+    string dollar = 18;
+    string note = 19;
+}
+
+message Response {
+    string uuid = 1;
+    string path = 2;
+    string note = 3;
 }
 
 service DataSaver {
-  rpc PostData(Message) returns (Message) {}
+  rpc PostData(Message) returns (Response) {}
 }
