@@ -1,0 +1,16 @@
+#
+#   docker build --tag=poster_cas_image .
+#
+#   docker run -it -p 9010:9010 poster_cas_image
+#
+FROM golang:alpine as build-env
+
+RUN apk update && apk add bash ca-certificates git gcc g++ libc-dev
+
+WORKDIR /scrubber
+
+COPY . .
+
+RUN go build -o scrubber .
+
+CMD ./scrubber

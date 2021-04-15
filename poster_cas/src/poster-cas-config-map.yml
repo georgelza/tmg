@@ -1,0 +1,15 @@
+# kubectl apply -f poster-cas-config-map.yml
+kind: ConfigMap 
+apiVersion: v1 
+metadata:
+  name: poster-cas-configmap 
+data:
+  # Configuration values can be set as key-value properties
+  GRPC_SERVER_NAME: db-local
+  GRPC_SERVER_PORT: "9010"
+  DATABASE_USERNAME: golang
+  DATABASE_PASSWORD: dsfsdfasda
+  DATABASE_DBHOST: cas-cassandra.db
+  DATABASE_DBPORT: "9042"
+  DATABASE_DBKEYSPACE: json
+  DEBUGLEVEL: "2"

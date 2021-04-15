@@ -9,4 +9,4 @@ database:
   dbport: 9042
   dbkeyspace: json
 
-debuglevel: 1
+debuglevel: 3

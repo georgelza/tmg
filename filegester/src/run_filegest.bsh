@@ -1,6 +1,6 @@
 
-export DEBUGLEVEL=1
-export TESTSIZE=9
+export DEBUGLEVEL=2
+export TESTSIZE=90
 
 export FILEDIR=input_data
 export DATAFILE=people.csv

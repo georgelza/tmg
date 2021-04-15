@@ -20,24 +20,15 @@ func init() {
 type Server struct {
 	DBConn      *database.DBConnection
 	Debug_level int
+	Hostname    string
 }
 
 func (s *Server) PostData(ctx context.Context, message *Message) (*Response, error) {
 
-	// Lets identify ourself
-	var vHostname, e1 = os.Hostname()
-	if e1 != nil {
-		grpcLog.Error("Can't retrieve hostname", e1)
-	}
-
-	message.Path += ",Poster_Term:[" + vHostname + "," + time.Now().Format("02-01-2006 - 15:04:05.0000") + "]"
+	message.Path += ",Poster_Term:[" + s.Hostname + "," + time.Now().Format("02-01-2006 - 15:04:05.0000") + "]"
 
 	// Diretly convert (Marshal) the protobuf msg to json structure
 	//	msgJSON, _ := protojson.Marshal(message)
-
-	if s.Debug_level > 1 {
-		prettyPrintJSON(message)
-	}
 
 	/***** OK, LKets get this into Cassandra *****/
 
@@ -65,6 +56,17 @@ func (s *Server) PostData(ctx context.Context, message *Message) (*Response, err
 
 	if err != nil {
 		grpcLog.Fatal("Had a problem inserting record ", err)
+
+	}
+
+	if s.Debug_level == 2 {
+		grpcLog.Info("Hostname : ", s.Hostname, " Message: ", message.Seq, " : ", message.Uuid)
+
+	} else if s.Debug_level == 3 {
+		prettyPrintJSON(message)
+
+	} else {
+		grpcLog.Info("don't know what to print")
 
 	}
 

@@ -1,13 +1,17 @@
 
-# This will go back in when we move into the K8S cluster, for now we're using config.yml
-#
-# export DEBUGLEVEL=1
+# Environment variables now sit in a config map, but for direction terminal execution still need them here.
+export GRPC_SERVER_NAME=localhost
+export GRPC_SERVER_PORT=9010
 
-# export GRPC_SERVER=localhost
-# export GRPC_PORT=9010
+export DATABASE_USERNAME=golang
+export DATABASE_PASSWORD=dsfsdfasda
+export DATABASE_DBHOST=localhost
+export DATABASE_DBPORT=9042
+export DATABASE_DBKEYSPACE=json
 
-# export DBHost=localhost
-# export DBKeyspace=first_app
-
+export DEBUGLEVEL=2
 
 go run -v server.go
+
+
+# kubectl port-forward --namespace db svc/cas-cassandra 9042:9042 &

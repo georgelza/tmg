@@ -1,0 +1,41 @@
+#############################
+#
+# 
+#
+##########################
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: scrubber
+spec:
+  selector:
+    app: scrubber
+  ports:
+    - protocol: TCP
+      port: 9010
+      targetPort: 9010
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scrubber
+  labels:
+    app: poster
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: scrubber
+  template:
+    metadata:
+      labels:
+        app: scrubber
+    spec:
+      containers:
+      - name: scrubber
+        image: scrubber_image
+        imagePullPolicy: IfNotPresent
+        envFrom:
+          - configMapRef:
+              name: scrubber-configmap    

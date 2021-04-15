@@ -1,0 +1,19 @@
+# kubectl apply -f poster-cas-config-map.yml
+kind: ConfigMap 
+apiVersion: v1 
+metadata:
+  name: scrubber-configmap 
+data:
+  # Configuration values can be set as key-value properties
+  GRPC_SERVER_NAME: localhost
+  GRPC_SERVER_PORT: "9010"
+
+  KAFKA_BROKER: localhost
+  KAFKA_PORT: "9092"
+  KAFKA_TOPIC: people_pb
+  KAFKA_NUMPARTITIONS: "3"
+  KAFKA_REPLICATIONFACTOR: "1"
+  KAFKA_RETENSION: "3600000"
+  KAFKA_CONSUMERGROUPID: tmg1
+
+  DEBUGLEVEL: "2"

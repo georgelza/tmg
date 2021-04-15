@@ -1,10 +1,8 @@
 cd src
 
-docker build -t poster_cas_image .
-docker tag poster_cas_image 127.0.0.1:5000/poster_cas_image
-docker push 127.0.0.1:5000/poster_cas_image
+# Build image with new config - should change this to a config map in k8s
+eval $(minikube -p minikube docker-env)
+go mod vendor
 
-# Cleanup commands
-#kubectl get deployment |grep poster_cas | awk '{print $1}' | xargs kubectl delete deployment
-#kubectl get service |grep poster_cas | awk '{print $1}' | xargs kubectl delete service
-#kubectl get pods |grep poster_cas | awk '{print $1}' | xargs kubectl delete pods
+docker build --tag=poster_cas_image .
+rm -rf vendor

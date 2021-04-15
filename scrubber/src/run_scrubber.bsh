@@ -1,12 +1,16 @@
 
 export DEBUGLEVEL=2
 
-export KAFKA_BROKER=localhost
-export KAFKA_PORT=9092
-export TOPIC=people_pb
-
 export GRPC_SERVER=localhost
 export GRPC_PORT=9010
+
+export KAFKA_BROKER=localhost
+export KAFKA_PORT=9092
+export KAFKA_TOPIC=people_pb
+export KAFKA_NUMPARTITIONS: "3"
+export KAFKA_REPLICATIONFACTOR: "1"
+export KAFKA_RETENSION: "60"
+export KAFKA_GROUPID: tmg1
 
 go run -v scrubber.go
 
