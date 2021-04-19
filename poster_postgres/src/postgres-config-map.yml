@@ -1,0 +1,17 @@
+# kubectl apply -f poster-cas-config-map.yml
+kind: ConfigMap 
+apiVersion: v1 
+metadata:
+  name: poster-postgres-configmap 
+data:
+  # Configuration values can be set as key-value properties
+  GRPC_SERVER_NAME: mac-local
+  GRPC_SERVER_PORT: "9010"
+
+  DATABASE_USERNAME: george
+  DATABASE_PASSWORD: postgres
+  DATABASE_HOST: mac-local
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: json
+
+  DEBUGLEVEL: "2"

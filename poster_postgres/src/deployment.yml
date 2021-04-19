@@ -1,0 +1,46 @@
+#############################
+#
+# https://kubernetes.io/docs/concepts/configuration/configmap/
+# https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
+# https://matthewpalmer.net/kubernetes-app-developer/articles/configmap-example-yaml.html
+#
+##########################
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: poster-postgres
+spec:
+  selector:
+    app: poster-postgres
+  ports:
+    - protocol: TCP
+      port: 9010
+      targetPort: 9010
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: poster-postgres
+  labels:
+    app: poster
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: poster-postgres
+  template:
+    metadata:
+      labels:
+        app: poster-postgres
+    spec:
+      containers:
+      - name: poster-postgres
+        image: poster_postgres_image
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9010
+        envFrom:
+          - configMapRef:
+              name: poster-postgres-configmap       
+

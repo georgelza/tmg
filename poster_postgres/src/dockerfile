@@ -1,31 +1,17 @@
 #
-#   docker build --tag=poster_term .
+#   docker build --tag=poster_cas_image .
 #
-#   docker run -it -p 9010:9010 poster_term
+#   docker run -it -p 9010:9010 poster_cas_image
 #
-FROM golang:alpine as build-env
 
-ENV GO111MODULE=on
+FROM golang:alpine as build-env
 
 RUN apk update && apk add bash ca-certificates git gcc g++ libc-dev
 
-RUN mkdir /poster_term
-RUN mkdir -p /poster_term/person 
-RUN mkdir -p /poster_term/config 
+WORKDIR /poster_postgres
 
-WORKDIR /poster_term
+COPY . .
 
-COPY ./person/person.pb.go /poster_term/person
-COPY ./person/person.go /poster_term/person
-COPY ./config/config.go /poster_term/config
-COPY ./server.go /poster_term
-COPY ./config.yml /poster_term
+RUN go build -o poster_postgres .
 
-COPY go.mod .
-COPY go.sum .
-
-RUN go mod download
-
-RUN go build -o poster_term .
-
-CMD ./poster_term
+CMD ./poster_postgres

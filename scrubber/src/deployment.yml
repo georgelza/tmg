@@ -38,4 +38,4 @@ spec:
         imagePullPolicy: IfNotPresent
         envFrom:
           - configMapRef:
-              name: scrubber-configmap    
+              name: scrubber-configmap 

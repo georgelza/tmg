@@ -53,6 +53,9 @@
 *	How to implement Logging via grpcLog :
 *	https://github.com/tensor-programming/docker_grpc_chat_tutorial
 *
+*	https://github.com/abhirockzz/kafka-go-docker-quickstart
+*	https://github.com/confluentinc/confluent-kafka-go/issues/461
+*
  */
 
 package main
@@ -104,8 +107,8 @@ func main() {
 	// Reading variables using the model
 	grpcLog.Info("Retrieving variables ..")
 
-	var vGRPC_Server = os.Getenv("GRPC_SERVER_NAME")
-	var vGRPC_Port = os.Getenv("GRPC_SERVER_PORT")
+	var vGRPC_Server = os.Getenv("GRPC_SERVER")
+	var vGRPC_Port = os.Getenv("GRPC_PORT")
 
 	var vKafka_Broker = os.Getenv("KAFKA_BROKER")
 	var vKafka_Port = os.Getenv("KAFKA_PORT")
@@ -119,8 +122,8 @@ func main() {
 
 	grpcLog.Info("Hostname is\t\t", vHostname)
 
+	grpcLog.Info("gRPC Server is\t", vGRPC_Server)
 	grpcLog.Info("gRPC Port is\t\t", vGRPC_Port)
-	grpcLog.Info("gRPC Name is\t\t", vGRPC_Server)
 
 	grpcLog.Info("Kafka Broker is\t", vKafka_Broker)
 	grpcLog.Info("Kafka Port is\t\t", vKafka_Port)
@@ -133,9 +136,9 @@ func main() {
 	grpcLog.Info("Debug Level is\t", vDebug_Level)
 
 	// Lets manage how much we prnt to the screen
-	var vDebugLevel, e2 = strconv.Atoi(vKafka_Topic)
+	var vDebugLevel, e2 = strconv.Atoi(vDebug_Level)
 	if e2 != nil {
-		grpcLog.Error("vKafka_Topic, String to Int convert error: %s", e2)
+		grpcLog.Error("vDebugLevel, String to Int convert error: %s", e2)
 
 	}
 
@@ -160,9 +163,11 @@ func main() {
 	// Create Consumer instance
 	// https://rmoff.net/2020/07/14/learning-golang-some-rough-notes-s02e04-kafka-go-consumer-function-based/
 
+	acm_str := fmt.Sprintf("%s:%s", vKafka_Broker, vKafka_Port)
+	grpcLog.Info("acm_str is\t\t", acm_str)
+
 	// Store the Admin config
-	acm := kafka.ConfigMap{
-		"bootstrap.servers": vKafka_Broker + ":" + vKafka_Port}
+	acm := kafka.ConfigMap{"bootstrap.servers": acm_str}
 
 	// Create a new AdminClient.
 	// AdminClient can also be instantiated using an existing
@@ -190,9 +195,11 @@ func main() {
 		panic("ParseDuration(60s)")
 
 	}
+	grpcLog.Info("ParseDuration Configured")
 
 	var tcm = make(map[string]string)
 	tcm["retention.ms"] = vKafka_Retension // Default 604 800 000 => 7 days, 36 00 000 => 1 hour
+	grpcLog.Info("retention.ms Configured")
 
 	results, err := a.CreateTopics(
 		ctx,
@@ -227,7 +234,7 @@ func main() {
 	// Lets configure the Kafka Client Connection now
 	// Store the Client config
 	cm := kafka.ConfigMap{
-		"bootstrap.servers":    vKafka_Broker + ":" + vKafka_Port,
+		"bootstrap.servers":    acm_str,
 		"group.id":             vKafka_ConsumerGroupID,
 		"enable.partition.eof": true,
 		"auto.offset.reset":    "latest"}

@@ -5,7 +5,7 @@ export TESTSIZE=90
 export FILEDIR=input_data
 export DATAFILE=people.csv
 
-export KAFKA_BROKER=localhost
+export KAFKA_BROKER=mac-local
 export KAFKA_PORT=9092
 export TOPIC=people_pb
 

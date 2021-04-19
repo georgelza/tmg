@@ -2,7 +2,7 @@
 *
 *
 *
-*
+*	https://www.robinwieruch.de/postgres-sql-macos-setup
 *
 *	https://www.calhoun.io/connecting-to-a-postgresql-database-with-gos-database-sql-package/
 *
@@ -32,33 +32,29 @@ type DBConnection struct {
 	session *sql.DB
 }
 
-/*
-const (
-	host   = "localhost"
-	port   = 5432
-	user   = "postgres"
-	dbname = "json"
-)
-*/
-
-func SetupDBConnection(dbname string, username string, password string, dbport int, dbhost string) *DBConnection {
+func SetupDBConnection(dbname string, user string, password string, port int, host string) *DBConnection {
 
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"dbname=%s sslmode=disable",
-		dbhost, dbport, username, dbname)
+		host, port, user, dbname)
+
+	grpcLog.Infof("psqlInfo %s", psqlInfo)
+
+	grpcLog.Infof("Compiled psqlInfo String!")
 
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
 		grpcLog.Fatalf("Error validating PostgreSQL database params : %s", fmt.Sprintf("%s: Error: %s", dbname, err))
 
 	}
+	grpcLog.Infof("Successfully Opened!")
 
 	err = db.Ping()
 	if err != nil {
 		grpcLog.Fatalf("Error opening connection to PostgreSQL database : %s", fmt.Sprintf("%s: Error: %s", dbname, err))
 
 	}
-	grpcLog.Infof("Successfully connected!")
+	grpcLog.Infof("Successfully Pinged!")
 
 	return &DBConnection{session: db}
 }

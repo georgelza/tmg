@@ -5,13 +5,10 @@ export GRPC_SERVER_PORT=9010
 
 export DATABASE_USERNAME=golang
 export DATABASE_PASSWORD=dsfsdfasda
-export DATABASE_DBHOST=localhost
+export DATABASE_DBHOST=192.168.0.24
 export DATABASE_DBPORT=9042
 export DATABASE_DBKEYSPACE=json
 
 export DEBUGLEVEL=2
 
 go run -v server.go
-
-
-# kubectl port-forward --namespace db svc/cas-cassandra 9042:9042 &
