@@ -53,6 +53,9 @@
 *	How to implement Logging via grpcLog :
 *	https://github.com/tensor-programming/docker_grpc_chat_tutorial
 *
+*	See https://www.youtube.com/watch?v=p45_9nOpD4k&t=911s - implementing logrus, with json, -> NICE
+*		https://github.com/sirupsen/logrus
+*
 *	https://github.com/abhirockzz/kafka-go-docker-quickstart
 *	https://github.com/confluentinc/confluent-kafka-go/issues/461
 *
@@ -241,8 +244,6 @@ func main() {
 
 	// Variable p holds the new Consumer instance.
 	c, e := kafka.NewConsumer(&cm)
-	grpcLog.Info("Created Kafka Consumer instance :")
-	grpcLog.Info("")
 
 	// Check for errors in creating the Consumer
 	if e != nil {
@@ -263,18 +264,24 @@ func main() {
 		os.Exit(1)
 
 	} else {
+		grpcLog.Info("Created Kafka Consumer instance :")
+		grpcLog.Info("")
 
 		grpcLog.Info("**** Configure gRPC Connection ****")
 
+		dial_str := fmt.Sprintf("%s:%s", vGRPC_Server, vGRPC_Port)
+		grpcLog.Info("dial_str is\t\t", dial_str)
+
 		// gRPC object creation
 		var conn *grpc.ClientConn
-		conn, err := grpc.Dial(vGRPC_Server+":"+vGRPC_Port, grpc.WithInsecure())
+		conn, err := grpc.Dial(dial_str, grpc.WithInsecure())
 		if err != nil {
 			grpcLog.Fatalf("gRPC client connection failed: %s", err)
 			os.Exit(1)
 
 		}
-		grpcLog.Info("gRPC Dialed :")
+		grpcLog.Info("gRPC Dialed Successfully :")
+		grpcLog.Info("gRPC Client connection established: \n")
 
 		defer conn.Close()
 
@@ -287,7 +294,8 @@ func main() {
 			os.Exit(1)
 
 		} else {
-			grpcLog.Info("gRPC client connection established: \n\n")
+			grpcLog.Info("Subscribed to Kafka Topic: ", vKafka_Topic)
+			grpcLog.Info("")
 
 			run := true
 			for run == true {

@@ -5,10 +5,10 @@ metadata:
   name: scrubber-configmap
 data:
   # Configuration values can be set as key-value properties
-  GRPC_SERVER: "192.168.0.24"
+  GRPC_SERVER: localhost
   GRPC_PORT: "9010"
 
-  KAFKA_BROKER: "192.168.0.24"
+  KAFKA_BROKER: "192.168.49.2"
   KAFKA_PORT: "9092"
   KAFKA_TOPIC: people_pb
   KAFKA_NUMPARTITIONS: "3"

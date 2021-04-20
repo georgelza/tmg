@@ -48,6 +48,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -71,14 +72,16 @@ func init() {
 
 func main() {
 
-	dt := time.Now()
 	fmt.Println("###############################################################")
 	fmt.Println("#")
 	fmt.Println("#   File      : Filegester ")
 	fmt.Println("#")
+	fmt.Println("#	Comment		: Reads fake input data from text file and publishes")
+	fmt.Println("#		        : onto Kafka topic")
+	fmt.Println("#")
 	fmt.Println("#   By        : George Leonard (georgelza@gmail.com)")
 	fmt.Println("#")
-	fmt.Println("#   Date/Time :", dt.Format("02-01-2006 - 15:04:05"))
+	fmt.Println("#   Date/Time :", time.Now().Format("02-01-2006 - 15:04:05"))
 	fmt.Println("#")
 	fmt.Println("###############################################################")
 	fmt.Println("")
@@ -111,29 +114,120 @@ func main() {
 	// Broker Configuration
 	var vKafka_Broker = os.Getenv("KAFKA_BROKER")
 	var vKafka_Port = os.Getenv("KAFKA_PORT")
-	grpcLog.Info("Kafka Broker    : ", vKafka_Broker)
-	grpcLog.Info("Kafka Port      : ", vKafka_Port)
+	var vKafka_Topic = os.Getenv("KAFKA_TOPIC")
+	var vKafka_NumPartitions = os.Getenv("KAFKA_NUMPARTITIONS")
+	var vKafka_ReplicationFactor = os.Getenv("KAFKA_REPLICATIONFACTOR")
+	var vKafka_Retension = os.Getenv("KAFKA_RETENSION")
+	var vKafka_ConsumerGroupID = os.Getenv("KAFKA_CONSUMERGROUPID")
 
-	// --
-	// The topic is passed as a pointer to the Producer, so we can't
-	// use a hard-coded literal. And a variable is a nicer way to do
-	// it anyway ;-)
-	var vTopic = os.Getenv("TOPIC")
-	grpcLog.Info("Kafka Topic     : ", vTopic)
+	grpcLog.Info("Kafka Broker is\t", vKafka_Broker)
+	grpcLog.Info("Kafka Port is\t\t", vKafka_Port)
+	grpcLog.Info("Kafka Topic is\t", vKafka_Topic)
+	grpcLog.Info("Kafka # Parts is\t", vKafka_NumPartitions)
+	grpcLog.Info("Kafka Rep Factor is\t", vKafka_ReplicationFactor)
+	grpcLog.Info("Kafka Retension is\t", vKafka_Retension)
+	grpcLog.Info("Kafka Group is\t", vKafka_ConsumerGroupID)
 
-	fmt.Println("")
+	// Lets manage how much we prnt to the screen
+	var vKafka_Num_Partitions, e4 = strconv.Atoi(vKafka_NumPartitions)
+	if e4 != nil {
+		grpcLog.Error("vKafka_NumPartitions, String to Int convert error: %s", e4)
+
+	}
+
+	// Lets manage how much we prnt to the screen
+	var vKafka_Replication_Factor, e5 = strconv.Atoi(vKafka_ReplicationFactor)
+	if e5 != nil {
+		grpcLog.Error("vKafka_ReplicationFactor, String to Int convert error: %s", e5)
+
+	}
+
+	// Create admin client to create the topic if it does not exist
+	grpcLog.Info("")
+	grpcLog.Info("**** Configure Admin Kafka Connection ****")
+
+	acm_str := fmt.Sprintf("%s:%s", vKafka_Broker, vKafka_Port)
+	grpcLog.Info("acm_str is\t\t", acm_str)
+
+	// Store the Admin config
+	acm := kafka.ConfigMap{"bootstrap.servers": acm_str}
+
+	// Create a new AdminClient.
+	// AdminClient can also be instantiated using an existing
+	// Producer or Consumer instance, see NewAdminClientFromProducer and
+	// NewAdminClientFromConsumer.
+	a, err := kafka.NewAdminClient(&acm)
+	if err != nil {
+		grpcLog.Errorf("Failed to create Admin client: %s\n", err)
+		os.Exit(1)
+
+	}
+	grpcLog.Info("Admin client created")
+
+	// Contexts are used to abort or limit the amount of time
+	// the Admin call blocks waiting for a result.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	grpcLog.Info("Context object created")
+
+	// Create topics on cluster.
+	// Set Admin options to wait for the operation to finish (or at most 60s)
+	maxDur, err := time.ParseDuration("60s")
+	if err != nil {
+		grpcLog.Errorf("ParseDuration Exceeded %v\n", err)
+		panic("ParseDuration(60s)")
+
+	}
+	grpcLog.Info("ParseDuration Configured")
+
+	var tcm = make(map[string]string)
+	tcm["retention.ms"] = vKafka_Retension // Default 604 800 000 => 7 days, 36 00 000 => 1 hour
+	grpcLog.Info("retention.ms Configured")
+
+	results, err := a.CreateTopics(
+		ctx,
+		// Multiple topics can be created simultaneously
+		// by providing more TopicSpecification structs here.
+		[]kafka.TopicSpecification{{
+			Topic:             vKafka_Topic,
+			NumPartitions:     vKafka_Num_Partitions,
+			ReplicationFactor: vKafka_Replication_Factor,
+			Config:            tcm}},
+
+		// Admin options
+		kafka.SetAdminOperationTimeout(maxDur))
+
+	if err != nil {
+		grpcLog.Errorf("Failed to create topic: %v\n", err)
+		os.Exit(1)
+	}
+	grpcLog.Infof("Topic %s Created\n", vKafka_Topic)
+
+	// Print results
+	for _, result := range results {
+		grpcLog.Infof("%s\n", result)
+
+	}
+
+	a.Close()
 
 	// --
 	// Create Producer instance
 	// https://docs.confluent.io/current/clients/confluent-kafka-go/index.html#NewProducer
 
-	// Store the config
-	c := kafka.ConfigMap{
-		"bootstrap.servers": vKafka_Broker + ":" + vKafka_Port,
-		"client.id":         vHostname}
+	grpcLog.Info("")
+	grpcLog.Info("**** Configure Client Kafka Connection ****")
+
+	cm_str := fmt.Sprintf("%s:%s", vKafka_Broker, vKafka_Port)
+	grpcLog.Info("cm_str is\t\t", cm_str)
+	grpcLog.Info("client.id is\t\t", vHostname)
+
+	// Store the client config
+	cm := kafka.ConfigMap{"bootstrap.servers": acm_str,
+		"client.id": vHostname}
 
 	// Variable p holds the new Producer instance.
-	p, err := kafka.NewProducer(&c)
+	p, err := kafka.NewProducer(&cm)
 
 	// Check for errors in creating the Producer
 	if err != nil {
@@ -157,6 +251,8 @@ func main() {
 		os.Exit(1)
 
 	} else {
+		grpcLog.Info("Created Kafka Producer instance :")
+		grpcLog.Info("")
 
 		///////////////////////////////////////////////////////
 		//
@@ -179,6 +275,7 @@ func main() {
 
 		}
 		defer f_InputData.Close()
+		grpcLog.Info("Source Data File opened :")
 
 		// Lets loop through the file, reading it line by line
 		scanner := bufio.NewScanner(f_InputData)
@@ -225,7 +322,7 @@ func main() {
 				// Build the message objects
 				// We're going to key the data on "state" column, this will help down the line in the project during consumptions.
 				kafkaMsg := kafka.Message{
-					TopicPartition: kafka.TopicPartition{Topic: &vTopic, Partition: kafka.PartitionAny},
+					TopicPartition: kafka.TopicPartition{Topic: &vKafka_Topic, Partition: kafka.PartitionAny},
 					Value:          serializedPerson,
 					Key:            []byte(s[8])}
 
@@ -246,7 +343,7 @@ func main() {
 								// It's a delivery report
 								km := ev.(*kafka.Message)
 								if km.TopicPartition.Error != nil {
-									if vDebugLevel > 2 {
+									if vDebugLevel > 20 {
 										fmt.Printf("☠️ Failed to send message '%v' to topic '%v'\n\tErr: %v",
 											string(km.Value),
 											string(*km.TopicPartition.Topic),
@@ -255,13 +352,22 @@ func main() {
 									}
 
 								} else {
-									if vDebugLevel > 1 {
+									if vDebugLevel == 1 {
+										fmt.Println(message.Seq, " ", message.First, " ", message.Last)
 
-										fmt.Printf("✅ Message '%v' delivered to topic '%v' (partition %d at offset %d)\n",
+									} else if vDebugLevel == 2 {
+										// for now we just dump the data to a text file, to be replaced with the publish to a Kafka topic
+										fmt.Println(message.Seq, " ", message.First, " ", message.Last)
+										fmt.Println(serializedPerson)
+										fmt.Println("")
+
+									} else if vDebugLevel == 3 {
+										fmt.Printf("✅ Message '%v' delivered to topic '%v'(partition %d at offset %d)\n",
 											string(km.Value),
 											string(*km.TopicPartition.Topic),
 											km.TopicPartition.Partition,
 											km.TopicPartition.Offset)
+
 									}
 								}
 
@@ -288,18 +394,6 @@ func main() {
 				if e := p.Produce(&kafkaMsg, nil); e != nil {
 					grpcLog.Fatalf("😢 Darn, there's an error producing the message!", e.Error())
 
-				}
-
-				if vDebugLevel == 1 {
-					fmt.Println(serializedPerson)
-
-				} else {
-					if vDebugLevel > 1 {
-						// for now we just dump the data to a text file, to be replaced with the publish to a Kafka topic
-						fmt.Println(message.Seq, " ", message.First, " ", message.Last)
-						fmt.Println(serializedPerson)
-						fmt.Println("")
-					}
 				}
 
 				if count == vTestSize {

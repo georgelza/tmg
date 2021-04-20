@@ -1,8 +1,8 @@
 
-export GRPC_SERVER=192.168.0.24
+export GRPC_SERVER=localhost
 export GRPC_PORT=9010
 
-export KAFKA_BROKER=192.168.0.24
+export KAFKA_BROKER=localhost
 export KAFKA_PORT=9092
 export KAFKA_TOPIC=people_pb
 export KAFKA_NUMPARTITIONS=3
