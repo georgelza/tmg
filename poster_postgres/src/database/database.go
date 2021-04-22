@@ -34,9 +34,9 @@ type DBConnection struct {
 
 func SetupDBConnection(dbname string, user string, password string, port int, host string) *DBConnection {
 
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s "+
 		"dbname=%s sslmode=disable",
-		host, port, user, dbname)
+		host, port, user, password, dbname)
 
 	grpcLog.Infof("psqlInfo %s", psqlInfo)
 

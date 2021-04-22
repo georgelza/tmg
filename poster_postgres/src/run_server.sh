@@ -1,6 +1,7 @@
 
 #
-export GRPC_SERVER_NAME=localhost
+export GRPC_SERVER_NAME=mbp-local
+#export GRPC_SERVER_NAME=localhost
 export GRPC_SERVER_PORT=9010
 
 export DATABASE_USERNAME=george

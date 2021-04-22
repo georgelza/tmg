@@ -59,6 +59,11 @@
 *	https://github.com/abhirockzz/kafka-go-docker-quickstart
 *	https://github.com/confluentinc/confluent-kafka-go/issues/461
 *
+*
+*	Client Listener Management for Kafka :
+*	https://www.confluent.io/blog/kafka-client-cannot-connect-to-broker-on-aws-on-docker-etc/?_ga=2.11602868.1661736099.1618811110-1053893990.1617181319&_gac=1.48689876.1618906682.Cj0KCQjw9_mDBhCGARIsAN3PaFOC1huRcGJmzf2JImKck4ykajJ_IvDMahxucfMuq-PTI5N4qQYdkOUaAhM4EALw_wcB
+*	https://rmoff.net/2020/07/17/learning-golang-some-rough-notes-s02e08-checking-kafka-advertised.listeners-with-go/
+*	https*
  */
 
 package main

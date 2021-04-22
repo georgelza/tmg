@@ -86,18 +86,18 @@ func main() {
 	fmt.Println("###############################################################")
 	fmt.Println("")
 
+	grpcLog.Info("Retrieving variables ..")
+
 	var vTestSize, e1 = strconv.Atoi(os.Getenv("TESTSIZE"))
 	if e1 != nil {
 		grpcLog.Error("String to Int convert error: %s", e1)
 	}
-	grpcLog.Info("Test Size       : ", vTestSize)
 
 	// Lets manage how much we prnt to the screen
 	var vDebugLevel, e2 = strconv.Atoi(os.Getenv("DEBUGLEVEL"))
 	if e2 != nil {
 		grpcLog.Error("String to Int convert error: %s", e2)
 	}
-	grpcLog.Info("Debug Level     : ", vDebugLevel)
 
 	// Lets identify ourself
 	var vHostname, e3 = os.Hostname()
@@ -108,8 +108,6 @@ func main() {
 	// File and directory
 	var vFileDir = os.Getenv("FILEDIR")
 	var vDataFile = os.Getenv("DATAFILE")
-	grpcLog.Info("FILEDIR         : ", vFileDir)
-	grpcLog.Info("DATAFILE        : ", vDataFile)
 
 	// Broker Configuration
 	var vKafka_Broker = os.Getenv("KAFKA_BROKER")
@@ -120,6 +118,11 @@ func main() {
 	var vKafka_Retension = os.Getenv("KAFKA_RETENSION")
 	var vKafka_ConsumerGroupID = os.Getenv("KAFKA_CONSUMERGROUPID")
 
+	grpcLog.Info("Hostname is\t\t", vHostname)
+	grpcLog.Info("File Directory is\t", vFileDir)
+	grpcLog.Info("Data File is\t\t", vDataFile)
+	grpcLog.Info("Test Size is\t\t", vTestSize)
+
 	grpcLog.Info("Kafka Broker is\t", vKafka_Broker)
 	grpcLog.Info("Kafka Port is\t\t", vKafka_Port)
 	grpcLog.Info("Kafka Topic is\t", vKafka_Topic)
@@ -127,6 +130,8 @@ func main() {
 	grpcLog.Info("Kafka Rep Factor is\t", vKafka_ReplicationFactor)
 	grpcLog.Info("Kafka Retension is\t", vKafka_Retension)
 	grpcLog.Info("Kafka Group is\t", vKafka_ConsumerGroupID)
+
+	grpcLog.Info("Debug Level is\t", vDebugLevel)
 
 	// Lets manage how much we prnt to the screen
 	var vKafka_Num_Partitions, e4 = strconv.Atoi(vKafka_NumPartitions)

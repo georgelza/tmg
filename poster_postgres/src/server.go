@@ -13,7 +13,7 @@
 *
 *	PostgreSQL
 *
-*
+*	Host Access	: https://minikube.sigs.k8s.io/docs/handbook/host-access/
 *
 *
  */
