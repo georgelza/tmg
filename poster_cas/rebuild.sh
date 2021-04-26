@@ -7,12 +7,15 @@ go mod vendor
 docker build --tag=poster_cas_image .
 rm -rf vendor
 
-ps -ef |grep forward |grep poster-cas | awk '{print $2}' | xargs kill
+#ps -ef |grep forward |grep poster-cas | awk '{print $2}' | xargs kill
 
 kubectl get pods -n tmg |grep poster-cas| awk '{print $1}' | xargs kubectl delete pods -n tmg
 
 # gRPC access port
-kubectl port-forward --namespace tmg svc/poster-cas 9010 &
+# 
+# Not used when scrubber is also running in the minikube environment
+#
+#kubectl port-forward --namespace tmg svc/poster-postgres 9010 &
 
 kubectl get all -n tmg -o wide
 

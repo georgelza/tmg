@@ -5,14 +5,13 @@ metadata:
   name: scrubber-configmap
 data:
   # Configuration values can be set as key-value properties
-  GRPC_SERVER: poster-postgres
+  GRPC_SERVER: poster-cas
   GRPC_PORT: "9010"
 
-  KAFKA_BROKER: mbp-local # This is for Confluent stack running locally as a service, not the docker-compose version
-  KAFKA_PORT: "19092"   # Hack... see extra listener configured in server.properties, see note top of scrubber.go (Client Listener Management)
-#  KAFKA_PORT: "9092"
+  KAFKA_BROKER: mbp-local
+  KAFKA_PORT: "19092"  
   KAFKA_TOPIC: people_pb
-  KAFKA_NUMPARTITIONS: "3"
+  KAFKA_NUMPARTITIONS: "2"
   KAFKA_REPLICATIONFACTOR: "1"
   KAFKA_RETENSION: "3600000"
   KAFKA_CONSUMERGROUPID: tmg1

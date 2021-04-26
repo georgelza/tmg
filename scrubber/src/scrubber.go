@@ -107,9 +107,9 @@ func main() {
 	fmt.Println("")
 
 	// Lets identify ourself
-	var vHostname, e1 = os.Hostname()
-	if e1 != nil {
-		grpcLog.Error("Can't retrieve hostname", e1)
+	vHostname, err := os.Hostname()
+	if err != nil {
+		grpcLog.Error("Can't retrieve hostname", err)
 	}
 
 	// Reading variables using the model
@@ -144,23 +144,23 @@ func main() {
 	grpcLog.Info("Debug Level is\t", vDebug_Level)
 
 	// Lets manage how much we prnt to the screen
-	var vDebugLevel, e2 = strconv.Atoi(vDebug_Level)
-	if e2 != nil {
-		grpcLog.Error("vDebugLevel, String to Int convert error: %s", e2)
+	vDebugLevel, err := strconv.Atoi(vDebug_Level)
+	if err != nil {
+		grpcLog.Error("vDebugLevel, String to Int convert error: %s", err)
 
 	}
 
 	// Lets manage how much we prnt to the screen
-	var vKafka_Num_Partitions, e3 = strconv.Atoi(vKafka_NumPartitions)
-	if e3 != nil {
-		grpcLog.Error("vKafka_NumPartitions, String to Int convert error: %s", e3)
+	vKafka_Num_Partitions, err := strconv.Atoi(vKafka_NumPartitions)
+	if err != nil {
+		grpcLog.Error("vKafka_NumPartitions, String to Int convert error: %s", err)
 
 	}
 
 	// Lets manage how much we prnt to the screen
-	var vKafka_Replication_Factor, e4 = strconv.Atoi(vKafka_ReplicationFactor)
-	if e4 != nil {
-		grpcLog.Error("vKafka_ReplicationFactor, String to Int convert error: %s", e4)
+	vKafka_Replication_Factor, err := strconv.Atoi(vKafka_ReplicationFactor)
+	if err != nil {
+		grpcLog.Error("vKafka_ReplicationFactor, String to Int convert error: %s", err)
 
 	}
 

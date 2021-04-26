@@ -66,9 +66,9 @@ func main() {
 	fmt.Println("")
 
 	// Lets identify ourself
-	var vHostname, e2 = os.Hostname()
-	if e2 != nil {
-		grpcLog.Error("Can't retrieve hostname", e2)
+	vHostname, err := os.Hostname()
+	if err != nil {
+		grpcLog.Error("Can't retrieve hostname", err)
 	}
 
 	// Reading variables using the model - from either shell script exports or configmap in K8s deployment
@@ -79,9 +79,9 @@ func main() {
 
 	var vDatabase_username = os.Getenv("DATABASE_USERNAME")
 	var vDatabase_password = os.Getenv("DATABASE_PASSWORD")
-	var vDatabase_host = os.Getenv("DATABASE_DBHOST")
-	var vDatabase_port = os.Getenv("DATABASE_DBPORT")
-	var vDatabase_keyspace = os.Getenv("DATABASE_DBKEYSPACE")
+	var vDatabase_host = os.Getenv("DATABASE_HOST")
+	var vDatabase_port = os.Getenv("DATABASE_PORT")
+	var vDatabase_keyspace = os.Getenv("DATABASE_KEYSPACE")
 
 	var vDebug_Level = os.Getenv("DEBUGLEVEL")
 
@@ -99,9 +99,9 @@ func main() {
 	grpcLog.Info("Debug Level is\t", vDebug_Level)
 
 	// Lets manage how much we prnt to the screen
-	var vDebugLevel, e1 = strconv.Atoi(vDebug_Level)
-	if e1 != nil {
-		grpcLog.Error("Debug Level: String to Int convert error: %s", e1)
+	vDebugLevel, err := strconv.Atoi(vDebug_Level)
+	if err != nil {
+		grpcLog.Error("Debug Level: String to Int convert error: %s", err)
 
 	}
 

@@ -62,7 +62,7 @@ func main() {
 	/***** Retrieve variables from config.yml *****/
 
 	// Lets identify ourself
-	var vHostname, err = os.Hostname()
+	vHostname, err := os.Hostname()
 	if err != nil {
 		grpcLog.Error("Can't retrieve hostname", err)
 	}
@@ -95,15 +95,15 @@ func main() {
 	grpcLog.Info("Debug Level is\t", vDebug_Level)
 
 	// Lets manage how much we prnt to the screen
-	var vDebugLevel, e2 = strconv.Atoi(vDebug_Level)
-	if e2 != nil {
-		grpcLog.Error("Debug Level: String to Int convert error: %s", e2)
+	vDebugLevel, err := strconv.Atoi(vDebug_Level)
+	if err != nil {
+		grpcLog.Error("Debug Level: String to Int convert error: %s", err)
 
 	}
 
-	var vDatabaseport, e3 = strconv.Atoi(vDatabase_port)
-	if e3 != nil {
-		grpcLog.Error("Debug Level: String to Int convert error: %s", e3)
+	vDatabaseport, err := strconv.Atoi(vDatabase_port)
+	if err != nil {
+		grpcLog.Error("Debug Level: String to Int convert error: %s", err)
 
 	}
 

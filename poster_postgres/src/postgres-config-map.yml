@@ -15,3 +15,9 @@ data:
   DATABASE_NAME: json
 
   DEBUGLEVEL: "2"
+
+  # To connect to the postgresql database from host:
+  #     PGPASSWORD="$POSTGRES_PASSWORD" psql --host 127.0.0.1 -U postgres -d json -p 5433
+  # remember we did a port forward:
+  # kubectl port-forward --namespace db svc/ps-postgresql 5433:5432 &
+  # we using 5433 externall as 5432 is already used on host for a postgresql database there, will remove. 

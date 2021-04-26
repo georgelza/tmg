@@ -6,6 +6,9 @@
 #
 ##########################
 #
+# kubectl scale --replicas=0 deployment/poster-postgres -n tmg
+#
+#
 apiVersion: v1
 kind: Service
 metadata:
@@ -25,7 +28,7 @@ metadata:
   labels:
     app: poster
 spec:
-  replicas: 3
+  replicas: 0
   selector:
     matchLabels:
       app: poster-postgres
