@@ -1,0 +1,49 @@
+#############################
+#
+# https://kubernetes.io/docs/concepts/configuration/configmap/
+# https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
+# https://matthewpalmer.net/kubernetes-app-developer/articles/configmap-example-yaml.html
+#
+##########################
+#
+# kubectl scale --replicas=0 deployment/poster-all -n tmg
+# kubectl scale --replicas=2 deployment/poster-all -n tmg
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: poster-all
+spec:
+  selector:
+    app: poster-all
+  ports:
+    - protocol: TCP
+      port: 9010
+      targetPort: 9010
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: poster-all
+  labels:
+    app: poster-all
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: poster-all
+  template:
+    metadata:
+      labels:
+        app: poster-all
+    spec:
+      containers:
+      - name: poster-all
+        image: poster_all_image
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9010
+        envFrom:
+          - configMapRef:
+              name: poster-all-configmap       
+

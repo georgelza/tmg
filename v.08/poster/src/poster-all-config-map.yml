@@ -1,0 +1,38 @@
+# kubectl apply -f postgres-config-map.yml -n tmg
+kind: ConfigMap 
+apiVersion: v1 
+metadata:
+  name: poster-all-configmap 
+data:
+  # Configuration values can be set as key-value properties
+  GRPC_SERVER: localhost
+  GRPC_PORT: "9010"
+
+  POSTGRES_USERNAME: postgres
+  POSTGRES_PASSWORD: mypass
+  POSTGRES_HOST: ps-postgresql.db.svc
+  POSTGRES_PORT: "5432"
+  POSTGRES_NAME: json
+
+  REDIS_USERNAME: notspecified
+  REDIS_PASSWORD: Gsa4bLnQvt
+  REDIS_HOST: redis-master.db.svc
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+
+  MONGODB_USERNAME: root
+  MONGODB_PASSWORD: TeA2g3AhOr
+  MONGODB_HOST: mongodb.db.svc
+  MONGODB_PORT: "27017"
+  MONGODB_DATABASE: json
+  MONGODB_COLLECTION: people
+  MONGODB_CONN_TIMEOUT: "15"
+  MONGODB_URI_OPTIONS: "admin?authSource=admin&compressors=disabled&gssapiServiceName=mongodb"
+
+  DEBUGLEVEL: "2"
+
+  # To connect to the postgresql database from host:
+  #     PGPASSWORD="$POSTGRES_PASSWORD" psql --host 127.0.0.1 -U postgres -d json -p 5433
+  # remember we did a port forward:
+  # kubectl port-forward --namespace db svc/ps-postgresql 5433:5432 &
+  # we using 5433 externall as 5432 is already used on host for a postgresql database there, will remove. 
