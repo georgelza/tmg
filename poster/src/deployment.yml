@@ -6,16 +6,16 @@
 #
 ##########################
 #
-# kubectl scale --replicas=0 deployment/poster-postgres -n tmg
-# kubectl scale --replicas=2 deployment/poster-postgres -n tmg
+# kubectl scale --replicas=0 deployment/poster-all -n tmg
+# kubectl scale --replicas=2 deployment/poster-all -n tmg
 #
 apiVersion: v1
 kind: Service
 metadata:
-  name: poster-postgres
+  name: poster-all
 spec:
   selector:
-    app: poster-postgres
+    app: poster-all
   ports:
     - protocol: TCP
       port: 9010
@@ -24,26 +24,26 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: poster-postgres
+  name: poster-all
   labels:
-    app: poster
+    app: poster-all
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: poster-postgres
+      app: poster-all
   template:
     metadata:
       labels:
-        app: poster-postgres
+        app: poster-all
     spec:
       containers:
-      - name: poster-postgres
-        image: poster_postgres_image
+      - name: poster-all
+        image: poster_all_image
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9010
         envFrom:
           - configMapRef:
-              name: poster-postgres-configmap       
+              name: poster-all-configmap       
 

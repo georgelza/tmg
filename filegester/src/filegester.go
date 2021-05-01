@@ -10,7 +10,8 @@
 *	Modified	: 31 Mar 2021	- Start
 *				: 1 April 2021	- modified person.proto, structure was called Person, refactored to Message,
 *								- added Body field, (remnant of the chat app).
-*
+*				: 28 April 2021 - Added dest to the protobuf message, to be used to determine the destination database
+*				: 1 May 2021	- Moved general and kafka input params to a variable based on a struct
 *
 *	By			: George Leonard (georgelza@gmail.com)
 *
@@ -18,11 +19,11 @@
 *  	This is part #1 of a little project to teach myself golang and various other technologies
 *	Included will be Protobufs and gRPC,
 *	Kafka
-*	ProgreSQL
-*	MySQL
-*	CockroachDB
-*	Cassandra
-*	Prometheus and Grafana
+*	ProgreSQL - working
+*	MySQL - to be done
+*	CockroachDB - to be done
+*	Cassandra - not liking, causing loads of instability, 2Gb Java footprint
+*	Prometheus and Grafana - to be done
 *
 *
 * 	All to be deployed onto docker - multiple consumers from cluster/topic storing into various end state databases
@@ -64,13 +65,31 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var grpcLog glog.LoggerV2
+type tp_general struct {
+	hostname   string
+	debuglevel int
+	testsize   int
+	dest       string
+	filedir    string
+	datafile   string
+}
+
+type tp_kafka struct {
+	broker            string
+	port              string
+	topic             string
+	numpartitions     int
+	replicationfactor int
+	retension         string
+	consumergroupid   string
+}
+
+var (
+	grpcLog glog.LoggerV2
+)
 
 func init() {
 	grpcLog = glog.NewLoggerV2(os.Stdout, os.Stdout, os.Stdout)
-}
-
-func main() {
 
 	fmt.Println("###############################################################")
 	fmt.Println("#")
@@ -86,64 +105,75 @@ func main() {
 	fmt.Println("###############################################################")
 	fmt.Println("")
 
+}
+
+func main() {
+
 	grpcLog.Info("Retrieving variables ..")
 
-	var vTestSize, e1 = strconv.Atoi(os.Getenv("TESTSIZE"))
-	if e1 != nil {
-		grpcLog.Error("String to Int convert error: %s", e1)
-	}
-
-	// Lets manage how much we prnt to the screen
-	var vDebugLevel, e2 = strconv.Atoi(os.Getenv("DEBUGLEVEL"))
-	if e2 != nil {
-		grpcLog.Error("String to Int convert error: %s", e2)
-	}
+	vGeneral := tp_general{hostname: ""}
 
 	// Lets identify ourself
-	var vHostname, e3 = os.Hostname()
-	if e3 != nil {
-		grpcLog.Error("Can't retrieve hostname", e3)
+	vHostname, err := os.Hostname()
+	if err != nil {
+		grpcLog.Error("Can't retrieve hostname", err)
 	}
+	vGeneral.hostname = vHostname
+
+	// Lets manage how much we prnt to the screen
+	vGeneral.debuglevel, err = strconv.Atoi(os.Getenv("DEBUGLEVEL"))
+	if err != nil {
+		grpcLog.Error("String to Int convert error: %s", err)
+	}
+
+	vGeneral.testsize, err = strconv.Atoi(os.Getenv("TESTSIZE"))
+	if err != nil {
+		grpcLog.Error("String to Int convert error: %s", err)
+	}
+
+	vGeneral.dest = os.Getenv("DEST")
 
 	// File and directory
-	var vFileDir = os.Getenv("FILEDIR")
-	var vDataFile = os.Getenv("DATAFILE")
+	vGeneral.filedir = os.Getenv("FILEDIR")
+	vGeneral.datafile = os.Getenv("DATAFILE")
 
 	// Broker Configuration
-	var vKafka_Broker = os.Getenv("KAFKA_BROKER")
-	var vKafka_Port = os.Getenv("KAFKA_PORT")
-	var vKafka_Topic = os.Getenv("KAFKA_TOPIC")
-	var vKafka_NumPartitions = os.Getenv("KAFKA_NUMPARTITIONS")
-	var vKafka_ReplicationFactor = os.Getenv("KAFKA_REPLICATIONFACTOR")
-	var vKafka_Retension = os.Getenv("KAFKA_RETENSION")
-	var vKafka_ConsumerGroupID = os.Getenv("KAFKA_CONSUMERGROUPID")
+	vKafka := tp_kafka{broker: os.Getenv("KAFKA_BROKER")}
+	vKafka.port = os.Getenv("KAFKA_PORT")
+	vKafka.topic = os.Getenv("KAFKA_TOPIC")
+	vKafka_NumPartitions := os.Getenv("KAFKA_NUMPARTITIONS")
+	vKafka_ReplicationFactor := os.Getenv("KAFKA_REPLICATIONFACTOR")
+	vKafka.retension = os.Getenv("KAFKA_RETENSION")
+	vKafka.consumergroupid = os.Getenv("KAFKA_CONSUMERGROUPID")
 
-	grpcLog.Info("Hostname is\t\t", vHostname)
-	grpcLog.Info("File Directory is\t", vFileDir)
-	grpcLog.Info("Data File is\t\t", vDataFile)
-	grpcLog.Info("Test Size is\t\t", vTestSize)
+	grpcLog.Info("****** General Parameters *****")
+	grpcLog.Info("Hostname is\t\t\t", vGeneral.hostname)
+	grpcLog.Info("Debug Level is\t\t", vGeneral.debuglevel)
+	grpcLog.Info("Destination Database is\t", vGeneral.dest)
+	grpcLog.Info("File Directory is\t\t", vGeneral.filedir)
+	grpcLog.Info("Data File is\t\t\t", vGeneral.datafile)
+	grpcLog.Info("Test Size is\t\t\t", vGeneral.testsize)
 
-	grpcLog.Info("Kafka Broker is\t", vKafka_Broker)
-	grpcLog.Info("Kafka Port is\t\t", vKafka_Port)
-	grpcLog.Info("Kafka Topic is\t", vKafka_Topic)
-	grpcLog.Info("Kafka # Parts is\t", vKafka_NumPartitions)
-	grpcLog.Info("Kafka Rep Factor is\t", vKafka_ReplicationFactor)
-	grpcLog.Info("Kafka Retension is\t", vKafka_Retension)
-	grpcLog.Info("Kafka Group is\t", vKafka_ConsumerGroupID)
-
-	grpcLog.Info("Debug Level is\t", vDebugLevel)
+	grpcLog.Info("****** Kafka Connection Parameters *****")
+	grpcLog.Info("Kafka Broker is\t\t", vKafka.broker)
+	grpcLog.Info("Kafka Port is\t\t\t", vKafka.port)
+	grpcLog.Info("Kafka Topic is\t\t", vKafka.topic)
+	grpcLog.Info("Kafka # Parts is\t\t", vKafka_NumPartitions)
+	grpcLog.Info("Kafka Rep Factor is\t\t", vKafka_ReplicationFactor)
+	grpcLog.Info("Kafka Retension is\t\t", vKafka.retension)
+	grpcLog.Info("Kafka Group is\t\t", vKafka.consumergroupid)
 
 	// Lets manage how much we prnt to the screen
-	var vKafka_Num_Partitions, e4 = strconv.Atoi(vKafka_NumPartitions)
-	if e4 != nil {
-		grpcLog.Error("vKafka_NumPartitions, String to Int convert error: %s", e4)
+	vKafka.numpartitions, err = strconv.Atoi(vKafka_NumPartitions)
+	if err != nil {
+		grpcLog.Error("vKafka_NumPartitions, String to Int convert error: %s", err)
 
 	}
 
 	// Lets manage how much we prnt to the screen
-	var vKafka_Replication_Factor, e5 = strconv.Atoi(vKafka_ReplicationFactor)
-	if e5 != nil {
-		grpcLog.Error("vKafka_ReplicationFactor, String to Int convert error: %s", e5)
+	vKafka.replicationfactor, err = strconv.Atoi(vKafka_ReplicationFactor)
+	if err != nil {
+		grpcLog.Error("vKafka_ReplicationFactor, String to Int convert error: %s", err)
 
 	}
 
@@ -151,8 +181,8 @@ func main() {
 	grpcLog.Info("")
 	grpcLog.Info("**** Configure Admin Kafka Connection ****")
 
-	acm_str := fmt.Sprintf("%s:%s", vKafka_Broker, vKafka_Port)
-	grpcLog.Info("acm_str is\t\t", acm_str)
+	acm_str := fmt.Sprintf("%s:%s", vKafka.broker, vKafka.port)
+	grpcLog.Info("acm_str is\t\t\t", acm_str)
 
 	// Store the Admin config
 	acm := kafka.ConfigMap{"bootstrap.servers": acm_str}
@@ -186,7 +216,7 @@ func main() {
 	grpcLog.Info("ParseDuration Configured")
 
 	var tcm = make(map[string]string)
-	tcm["retention.ms"] = vKafka_Retension // Default 604 800 000 => 7 days, 36 00 000 => 1 hour
+	tcm["retention.ms"] = vKafka.retension // Default 604 800 000 => 7 days, 36 00 000 => 1 hour
 	grpcLog.Info("retention.ms Configured")
 
 	results, err := a.CreateTopics(
@@ -194,9 +224,9 @@ func main() {
 		// Multiple topics can be created simultaneously
 		// by providing more TopicSpecification structs here.
 		[]kafka.TopicSpecification{{
-			Topic:             vKafka_Topic,
-			NumPartitions:     vKafka_Num_Partitions,
-			ReplicationFactor: vKafka_Replication_Factor,
+			Topic:             vKafka.topic,
+			NumPartitions:     vKafka.numpartitions,
+			ReplicationFactor: vKafka.replicationfactor,
 			Config:            tcm}},
 
 		// Admin options
@@ -206,7 +236,7 @@ func main() {
 		grpcLog.Errorf("Failed to create topic: %v\n", err)
 		os.Exit(1)
 	}
-	grpcLog.Infof("Topic %s Created\n", vKafka_Topic)
+	grpcLog.Infof("Topic %s Created\n", vKafka.topic)
 
 	// Print results
 	for _, result := range results {
@@ -223,13 +253,13 @@ func main() {
 	grpcLog.Info("")
 	grpcLog.Info("**** Configure Client Kafka Connection ****")
 
-	cm_str := fmt.Sprintf("%s:%s", vKafka_Broker, vKafka_Port)
-	grpcLog.Info("cm_str is\t\t", cm_str)
-	grpcLog.Info("client.id is\t\t", vHostname)
+	cm_str := fmt.Sprintf("%s:%s", vKafka.broker, vKafka.port)
+	grpcLog.Info("cm_str is\t\t\t", cm_str)
+	grpcLog.Info("client.id is\t\t\t", vGeneral.hostname)
 
 	// Store the client config
 	cm := kafka.ConfigMap{"bootstrap.servers": acm_str,
-		"client.id": vHostname}
+		"client.id": vGeneral.hostname}
 
 	// Variable p holds the new Producer instance.
 	p, err := kafka.NewProducer(&cm)
@@ -271,7 +301,7 @@ func main() {
 		doneChan := make(chan bool)
 
 		// Build a fully qualified path to the data file
-		vFile := filepath.Join(vFileDir, vDataFile)
+		vFile := filepath.Join(vGeneral.filedir, vGeneral.datafile)
 
 		// Open my source file
 		f_InputData, err := os.Open(vFile)
@@ -293,8 +323,9 @@ func main() {
 				// Split the file based on comman's into a array
 				s := strings.Split(scanner.Text(), ",")
 				message := &person.Message{
+					Dest:      vGeneral.dest,
 					Uuid:      guuid.New().String(),
-					Path:      "FileGester:[" + vHostname + "," + time.Now().Format("02-01-2006 - 15:04:05.0000") + "]",
+					Path:      "FileGester:[" + vGeneral.hostname + "," + time.Now().Format("02-01-2006 - 15:04:05.0000") + "]",
 					Seq:       s[0],
 					Alpha:     s[1],
 					First:     s[2],
@@ -327,7 +358,7 @@ func main() {
 				// Build the message objects
 				// We're going to key the data on "state" column, this will help down the line in the project during consumptions.
 				kafkaMsg := kafka.Message{
-					TopicPartition: kafka.TopicPartition{Topic: &vKafka_Topic, Partition: kafka.PartitionAny},
+					TopicPartition: kafka.TopicPartition{Topic: &vKafka.topic, Partition: kafka.PartitionAny},
 					Value:          serializedPerson,
 					Key:            []byte(s[8])}
 
@@ -348,7 +379,7 @@ func main() {
 								// It's a delivery report
 								km := ev.(*kafka.Message)
 								if km.TopicPartition.Error != nil {
-									if vDebugLevel > 20 {
+									if vGeneral.debuglevel > 2 {
 										fmt.Printf("☠️ Failed to send message '%v' to topic '%v'\n\tErr: %v",
 											string(km.Value),
 											string(*km.TopicPartition.Topic),
@@ -357,22 +388,28 @@ func main() {
 									}
 
 								} else {
-									if vDebugLevel == 1 {
+									if vGeneral.debuglevel == 1 {
 										fmt.Println(message.Seq, " ", message.First, " ", message.Last)
 
-									} else if vDebugLevel == 2 {
+									} else if vGeneral.debuglevel == 2 {
+
+										// for now we just dump the data to a text file, to be replaced with the publish to a Kafka topic
+										fmt.Println(message.Seq, " ", message.Uuid, " ", message.First, " ", message.Last)
+
+									} else if vGeneral.debuglevel == 3 {
+
 										// for now we just dump the data to a text file, to be replaced with the publish to a Kafka topic
 										fmt.Println(message.Seq, " ", message.First, " ", message.Last)
 										fmt.Println(serializedPerson)
 										fmt.Println("")
 
-									} else if vDebugLevel == 3 {
+									} else if vGeneral.debuglevel == 4 {
+
 										fmt.Printf("✅ Message '%v' delivered to topic '%v'(partition %d at offset %d)\n",
 											string(km.Value),
 											string(*km.TopicPartition.Topic),
 											km.TopicPartition.Partition,
 											km.TopicPartition.Offset)
-
 									}
 								}
 
@@ -401,7 +438,7 @@ func main() {
 
 				}
 
-				if count == vTestSize {
+				if count == vGeneral.testsize {
 					break
 				}
 			}

@@ -5,7 +5,7 @@ metadata:
   name: scrubber-configmap
 data:
   # Configuration values can be set as key-value properties
-  GRPC_SERVER: poster-cas
+  GRPC_SERVER: poster-all
   GRPC_PORT: "9010"
 
   KAFKA_BROKER: mbp-local
@@ -15,5 +15,6 @@ data:
   KAFKA_REPLICATIONFACTOR: "1"
   KAFKA_RETENSION: "3600000"
   KAFKA_CONSUMERGROUPID: tmg1
+  KAFKA_ENABLE_PARTITION_EOF: "true"
 
   DEBUGLEVEL: "2"

@@ -1,0 +1,17 @@
+#
+#   docker build --tag=poster_image .
+#
+#   docker run -it -p 9010:9010 poster_image
+#
+
+FROM golang:alpine as build-env
+
+RUN apk update && apk add bash ca-certificates git gcc g++ libc-dev
+
+WORKDIR /poster_all
+
+COPY . .
+
+RUN go build -o poster_all .
+
+CMD ./poster_all

@@ -64,6 +64,8 @@
 *	https://www.confluent.io/blog/kafka-client-cannot-connect-to-broker-on-aws-on-docker-etc/?_ga=2.11602868.1661736099.1618811110-1053893990.1617181319&_gac=1.48689876.1618906682.Cj0KCQjw9_mDBhCGARIsAN3PaFOC1huRcGJmzf2JImKck4ykajJ_IvDMahxucfMuq-PTI5N4qQYdkOUaAhM4EALw_wcB
 *	https://rmoff.net/2020/07/17/learning-golang-some-rough-notes-s02e08-checking-kafka-advertised.listeners-with-go/
 *	https*
+*
+*
  */
 
 package main
@@ -83,13 +85,32 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var grpcLog glog.LoggerV2
+type tp_general struct {
+	hostname   string
+	debuglevel int
+}
+
+type tp_grpc struct {
+	server string
+	port   string
+}
+
+type tp_kafka struct {
+	broker            string
+	port              string
+	topic             string
+	numpartitions     int
+	replicationfactor int
+	retension         string
+	consumergroupid   string
+}
+
+var (
+	grpcLog glog.LoggerV2
+)
 
 func init() {
 	grpcLog = glog.NewLoggerV2(os.Stdout, os.Stdout, os.Stdout)
-}
-
-func main() {
 
 	fmt.Println("")
 	fmt.Println("###############################################################")
@@ -106,59 +127,66 @@ func main() {
 	fmt.Println("###############################################################")
 	fmt.Println("")
 
+}
+
+func main() {
+
+	grpcLog.Info("Retrieving variables ..")
+
+	vGeneral := tp_general{hostname: ""}
+
 	// Lets identify ourself
 	vHostname, err := os.Hostname()
 	if err != nil {
 		grpcLog.Error("Can't retrieve hostname", err)
 	}
-
-	// Reading variables using the model
-	grpcLog.Info("Retrieving variables ..")
-
-	var vGRPC_Server = os.Getenv("GRPC_SERVER")
-	var vGRPC_Port = os.Getenv("GRPC_PORT")
-
-	var vKafka_Broker = os.Getenv("KAFKA_BROKER")
-	var vKafka_Port = os.Getenv("KAFKA_PORT")
-	var vKafka_Topic = os.Getenv("KAFKA_TOPIC")
-	var vKafka_NumPartitions = os.Getenv("KAFKA_NUMPARTITIONS")
-	var vKafka_ReplicationFactor = os.Getenv("KAFKA_REPLICATIONFACTOR")
-	var vKafka_Retension = os.Getenv("KAFKA_RETENSION")
-	var vKafka_ConsumerGroupID = os.Getenv("KAFKA_CONSUMERGROUPID")
-
-	var vDebug_Level = os.Getenv("DEBUGLEVEL")
-
-	grpcLog.Info("Hostname is\t\t", vHostname)
-
-	grpcLog.Info("gRPC Server is\t", vGRPC_Server)
-	grpcLog.Info("gRPC Port is\t\t", vGRPC_Port)
-
-	grpcLog.Info("Kafka Broker is\t", vKafka_Broker)
-	grpcLog.Info("Kafka Port is\t\t", vKafka_Port)
-	grpcLog.Info("Kafka Topic is\t", vKafka_Topic)
-	grpcLog.Info("Kafka # Parts is\t", vKafka_NumPartitions)
-	grpcLog.Info("Kafka Rep Factor is\t", vKafka_ReplicationFactor)
-	grpcLog.Info("Kafka Retension is\t", vKafka_Retension)
-	grpcLog.Info("Kafka Group is\t", vKafka_ConsumerGroupID)
-
-	grpcLog.Info("Debug Level is\t", vDebug_Level)
+	vGeneral.hostname = vHostname
 
 	// Lets manage how much we prnt to the screen
-	vDebugLevel, err := strconv.Atoi(vDebug_Level)
+	vDebugLevel, err := strconv.Atoi(os.Getenv("DEBUGLEVEL"))
 	if err != nil {
-		grpcLog.Error("vDebugLevel, String to Int convert error: %s", err)
-
+		grpcLog.Error("String to Int convert error: %s", err)
 	}
+	vGeneral.debuglevel = vDebugLevel
+
+	vGRPC := tp_grpc{server: os.Getenv("GRPC_SERVER")}
+	vGRPC.port = os.Getenv("GRPC_PORT")
+
+	// Broker Configuration
+	vKafka := tp_kafka{broker: os.Getenv("KAFKA_BROKER")}
+	vKafka.port = os.Getenv("KAFKA_PORT")
+	vKafka.topic = os.Getenv("KAFKA_TOPIC")
+	vKafka_NumPartitions := os.Getenv("KAFKA_NUMPARTITIONS")
+	vKafka_ReplicationFactor := os.Getenv("KAFKA_REPLICATIONFACTOR")
+	vKafka.retension = os.Getenv("KAFKA_RETENSION")
+	vKafka.consumergroupid = os.Getenv("KAFKA_CONSUMERGROUPID")
+
+	grpcLog.Info("****** General Parameters *****")
+	grpcLog.Info("Hostname is\t\t", vGeneral.hostname)
+	grpcLog.Info("Debug Level is\t", vGeneral.debuglevel)
+
+	grpcLog.Info("****** gRPC Connection Parameters *****")
+	grpcLog.Info("gRPC Server is\t", vGRPC.server)
+	grpcLog.Info("gRPC Port is\t\t", vGRPC.port)
+
+	grpcLog.Info("****** Kafka Connection Parameters *****")
+	grpcLog.Info("Kafka Broker is\t\t", vKafka.broker)
+	grpcLog.Info("Kafka Port is\t\t\t", vKafka.port)
+	grpcLog.Info("Kafka Topic is\t\t", vKafka.topic)
+	grpcLog.Info("Kafka # Parts is\t\t", vKafka_NumPartitions)
+	grpcLog.Info("Kafka Rep Factor is\t\t", vKafka_ReplicationFactor)
+	grpcLog.Info("Kafka Retension is\t\t", vKafka.retension)
+	grpcLog.Info("Kafka Group is\t\t", vKafka.consumergroupid)
 
 	// Lets manage how much we prnt to the screen
-	vKafka_Num_Partitions, err := strconv.Atoi(vKafka_NumPartitions)
+	vKafka.numpartitions, err = strconv.Atoi(vKafka_NumPartitions)
 	if err != nil {
 		grpcLog.Error("vKafka_NumPartitions, String to Int convert error: %s", err)
 
 	}
 
 	// Lets manage how much we prnt to the screen
-	vKafka_Replication_Factor, err := strconv.Atoi(vKafka_ReplicationFactor)
+	vKafka.replicationfactor, err = strconv.Atoi(vKafka_ReplicationFactor)
 	if err != nil {
 		grpcLog.Error("vKafka_ReplicationFactor, String to Int convert error: %s", err)
 
@@ -171,7 +199,7 @@ func main() {
 	// Create Consumer instance
 	// https://rmoff.net/2020/07/14/learning-golang-some-rough-notes-s02e04-kafka-go-consumer-function-based/
 
-	acm_str := fmt.Sprintf("%s:%s", vKafka_Broker, vKafka_Port)
+	acm_str := fmt.Sprintf("%s:%s", vKafka.broker, vKafka.port)
 	grpcLog.Info("acm_str is\t\t", acm_str)
 
 	// Store the Admin config
@@ -206,7 +234,7 @@ func main() {
 	grpcLog.Info("ParseDuration Configured")
 
 	var tcm = make(map[string]string)
-	tcm["retention.ms"] = vKafka_Retension // Default 604 800 000 => 7 days, 36 00 000 => 1 hour
+	tcm["retention.ms"] = vKafka.retension // Default 604 800 000 => 7 days, 36 00 000 => 1 hour
 	grpcLog.Info("retention.ms Configured")
 
 	results, err := a.CreateTopics(
@@ -214,9 +242,9 @@ func main() {
 		// Multiple topics can be created simultaneously
 		// by providing more TopicSpecification structs here.
 		[]kafka.TopicSpecification{{
-			Topic:             vKafka_Topic,
-			NumPartitions:     vKafka_Num_Partitions,
-			ReplicationFactor: vKafka_Replication_Factor,
+			Topic:             vKafka.topic,
+			NumPartitions:     vKafka.numpartitions,
+			ReplicationFactor: vKafka.replicationfactor,
 			Config:            tcm}},
 
 		// Admin options
@@ -226,7 +254,7 @@ func main() {
 		grpcLog.Errorf("Failed to create topic: %v\n", err)
 		os.Exit(1)
 	}
-	grpcLog.Infof("Topic %s Created\n", vKafka_Topic)
+	grpcLog.Infof("Topic %s Created\n", vKafka.topic)
 
 	// Print results
 	for _, result := range results {
@@ -243,7 +271,7 @@ func main() {
 	// Store the Client config
 	cm := kafka.ConfigMap{
 		"bootstrap.servers":    acm_str,
-		"group.id":             vKafka_ConsumerGroupID,
+		"group.id":             vKafka.consumergroupid,
 		"enable.partition.eof": true,
 		"auto.offset.reset":    "latest"}
 
@@ -274,7 +302,7 @@ func main() {
 
 		grpcLog.Info("**** Configure gRPC Connection ****")
 
-		dial_str := fmt.Sprintf("%s:%s", vGRPC_Server, vGRPC_Port)
+		dial_str := fmt.Sprintf("%s:%s", vGRPC.server, vGRPC.port)
 		grpcLog.Info("dial_str is\t\t", dial_str)
 
 		// gRPC object creation
@@ -294,12 +322,12 @@ func main() {
 		grpcLog.Info("gRPC Protobuf DataSaverServer Object created :")
 
 		// Subscribe to the topic
-		if e := c.Subscribe(vKafka_Topic, nil); e != nil {
+		if e := c.Subscribe(vKafka.topic, nil); e != nil {
 			grpcLog.Fatalf("☠️ Uh oh, there was an error subscribing to the topic :\n\t%v\n", e)
 			os.Exit(1)
 
 		} else {
-			grpcLog.Info("Subscribed to Kafka Topic: ", vKafka_Topic)
+			grpcLog.Info("Subscribed to Kafka Topic: ", vKafka.topic)
 			grpcLog.Info("")
 
 			run := true
@@ -317,19 +345,19 @@ func main() {
 
 					}
 
-					message.Path += ",Scrubber:[" + vHostname + "," + time.Now().Format("02-01-2006 - 15:04:05.0000") + "]"
+					message.Path += ",Scrubber:[" + vGeneral.hostname + "," + time.Now().Format("02-01-2006 - 15:04:05.0000") + "]"
 
-					if vDebugLevel == 2 {
-						grpcLog.Infof("\n%% Hostname: %s Recieved Message on %s: %s: %s", vHostname, e.TopicPartition, message.Seq, message.Uuid, "\n")
+					if vGeneral.debuglevel == 2 {
+						grpcLog.Infof("\n%% Hostname: %s Recieved Message on %s: %s: %s", vGeneral.hostname, e.TopicPartition, message.Seq, message.Uuid, "\n")
 
-					} else if vDebugLevel == 3 {
-						grpcLog.Infof("\n%% Hostname: %s Recieved Message on %s: %s", vHostname, e.TopicPartition, e.Value, "\n")
+					} else if vGeneral.debuglevel == 3 {
+						grpcLog.Infof("\n%% Hostname: %s Recieved Message on %s: %s", vGeneral.hostname, e.TopicPartition, e.Value, "\n")
 
-					} else if vDebugLevel == 4 {
+					} else if vGeneral.debuglevel == 4 {
 						// Marshal message into serializedPerson
 						serializedPerson, err := proto.Marshal(message)
 						if err != nil {
-							fmt.Print("Hostname: ", vHostname, serializedPerson)
+							fmt.Print("Hostname: ", vGeneral.hostname, serializedPerson)
 
 						}
 					}
