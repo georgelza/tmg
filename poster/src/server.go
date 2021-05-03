@@ -9,6 +9,7 @@
 *	Modified	: 13 April 2021	Started
 *				: 28 April 2021 - Remapping some vatiables so that I have one program, all connecting to multiple databases.
 *				: 1 May 2021 	- Moved all the configuration params to a struct for each database.
+*				: 3 May 2021	- Added MariaDB, renamed some variables and methods.
 *
 *	By			: George Leonard (georgelza@gmail.com)
 *
@@ -67,6 +68,14 @@ type tp_mongo struct {
 	collection   string
 	conn_timeout string
 	uri_options  string
+}
+
+type tp_maria struct {
+	username string
+	password string
+	host     string
+	port     string
+	name     string
 }
 
 var (
@@ -137,6 +146,12 @@ func main() {
 	vMongoDB.conn_timeout = os.Getenv("MONGODB_CONN_TIMEOUT")
 	vMongoDB.uri_options = os.Getenv("MONGODB_URI_OPTIONS")
 
+	vMariaDB := tp_maria{username: os.Getenv("MARIADB_USERNAME")}
+	vMariaDB.password = os.Getenv("MARIADB_PASSWORD")
+	vMariaDB.host = os.Getenv("MARIADB_HOST")
+	vMariaDB.port = os.Getenv("MARIADB_PORT")
+	vMariaDB.name = os.Getenv("MARIADB_DB")
+
 	grpcLog.Info("****** General Parameters *****")
 	grpcLog.Info("Hostname is\t\t\t", vGeneral.hostname)
 	grpcLog.Info("Debug Level is\t\t", vGeneral.debuglevel)
@@ -160,16 +175,21 @@ func main() {
 	grpcLog.Info("Redis DB Password is\t\t", vRedis.password)
 
 	grpcLog.Info("****** MongoDB Connection Parameters *****")
-	grpcLog.Info("MongoDB DB Host is\t\t", vMongoDB.host)
-	grpcLog.Info("MongoDB DB Port is\t\t", vMongoDB.port)
-	grpcLog.Info("MongoDB DB Database is\t\t", vMongoDB.database)
-	grpcLog.Info("MongoDB DB Collection is\t\t", vMongoDB.collection)
-	grpcLog.Info("MongoDB DB Username is\t\t", vMongoDB.username)
-	grpcLog.Info("MongoDB DB Password is\t\t", vMongoDB.password)
-	grpcLog.Info("MongoDB DB Conn Timeout is\t\t", vMongoDB.conn_timeout)
-	grpcLog.Info("MongoDB DB URI Options is\t\t", vMongoDB.uri_options)
+	grpcLog.Info("MongoDB Host is\t\t", vMongoDB.host)
+	grpcLog.Info("MongoDB Port is\t\t", vMongoDB.port)
+	grpcLog.Info("MongoDB Database is\t\t", vMongoDB.database)
+	grpcLog.Info("MongoDB Collection is\t\t", vMongoDB.collection)
+	grpcLog.Info("MongoDB Username is\t\t", vMongoDB.username)
+	grpcLog.Info("MongoDB Password is\t\t", vMongoDB.password)
+	grpcLog.Info("MongoDB Conn Timeout is\t\t", vMongoDB.conn_timeout)
+	grpcLog.Info("MongoDB URI Options is\t\t", vMongoDB.uri_options)
 
 	grpcLog.Info("****** MariaDB Connection Parameters *****")
+	grpcLog.Info("MariaDB Host is\t\t", vMariaDB.host)
+	grpcLog.Info("MariaDB Port is\t\t", vMariaDB.port)
+	grpcLog.Info("MariaDB Name is\t\t", vMariaDB.name)
+	grpcLog.Info("MariaDB Username is\t\t", vMariaDB.username)
+	grpcLog.Info("MariaDB Password is\t\t", vMariaDB.password)
 
 	vPostgres.port, err = strconv.Atoi(vPostgres_port)
 	if err != nil {
@@ -217,18 +237,18 @@ func main() {
 	grpcLog.Info("**** Configure PostgreSQL Connection ****")
 
 	// Setup PostgreSQL Database connect/Server environment
-	server.Postgres_DBConn = database.Postgres_SetupDBConnection(
+	server.Postgres_dbConn = database.Postgres_dbConnect(
 		vPostgres.name,
 		vPostgres.username,
 		vPostgres.password,
 		vPostgres.port,
 		vPostgres.host,
 	)
-	if server.Postgres_DBConn == nil {
+	if server.Postgres_dbConn == nil {
 		grpcLog.Errorf("Problem initialising Postgres database connection:")
 
 	}
-	defer server.Postgres_DBConn.Close()
+	defer server.Postgres_dbConn.Close()
 
 	//
 	//
@@ -236,18 +256,18 @@ func main() {
 	grpcLog.Info("**** Configure Redis Connection ****")
 
 	// Setup Redis Database connect/Server environment
-	server.Redis_DBConn = database.Redis_SetupDBConnection(
+	server.Redis_dbConn = database.Redis_dbConnect(
 		vRedis.host,
 		vRedis.port,
 		vRedis.db,
 		vRedis.username,
 		vRedis.password,
 	)
-	if server.Redis_DBConn == nil {
+	if server.Redis_dbConn == nil {
 		grpcLog.Errorf("Problem initialising Redis database connection:")
 
 	}
-	defer server.Redis_DBConn.Close()
+	defer server.Redis_dbConn.Close()
 
 	//
 	//
@@ -255,7 +275,7 @@ func main() {
 	grpcLog.Info("**** Configure MongoDB Connection ****")
 
 	// Setup Mongo Database connect/Server environment
-	server.Mongo_DBConn = database.MongoDB_SetupDBConnection(
+	server.Mongo_dbConn = database.MongoDB_dbConnect(
 		vMongoDB.host,
 		vMongoDB.port,
 		vMongoDB.database,
@@ -265,11 +285,30 @@ func main() {
 		vMongoDB.conn_timeout,
 		vMongoDB.uri_options,
 	)
-	if server.Mongo_DBConn == nil {
+	if server.Mongo_dbConn == nil {
 		grpcLog.Errorf("Problem initialising MongoDB connection:")
 
 	}
-	defer server.Mongo_DBConn.Disconnect()
+	defer server.Mongo_dbConn.Disconnect()
+
+	//
+	//
+	grpcLog.Info("")
+	grpcLog.Info("**** Configure MariaDB Connection ****")
+
+	// Setup MariaDB Database connect/Server environment
+	server.Maria_dbConn = database.MariaDB_dbConnect(
+		vMariaDB.name,
+		vMariaDB.username,
+		vMariaDB.password,
+		vMariaDB.port,
+		vMariaDB.host,
+	)
+	if server.Maria_dbConn == nil {
+		grpcLog.Errorf("Problem initialising MariaDB database connection:")
+
+	}
+	defer server.Maria_dbConn.Close()
 
 	/*
 	 *

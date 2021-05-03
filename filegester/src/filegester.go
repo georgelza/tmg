@@ -12,6 +12,7 @@
 *								- added Body field, (remnant of the chat app).
 *				: 28 April 2021 - Added dest to the protobuf message, to be used to determine the destination database
 *				: 1 May 2021	- Moved general and kafka input params to a variable based on a struct
+*				: 2 May 2021 	- Added prompt at beginning to get the dest database specified
 *
 *	By			: George Leonard (georgelza@gmail.com)
 *
@@ -86,6 +87,7 @@ type tp_kafka struct {
 
 var (
 	grpcLog glog.LoggerV2
+	m       = make(map[string]string)
 )
 
 func init() {
@@ -104,12 +106,26 @@ func init() {
 	fmt.Println("#")
 	fmt.Println("###############################################################")
 	fmt.Println("")
+	fmt.Println(" 	Please select destination database")
+	fmt.Println("*")
+	fmt.Println("* 1 - PostgreSQL")
+	fmt.Println("* 2 - Redis")
+	fmt.Println("* 3 - MongoDB")
+	fmt.Println("* 4 - MariaDB")
+	fmt.Println("*")
 
 }
 
 func main() {
 
-	grpcLog.Info("Retrieving variables ..")
+	m["1"] = "postgres"
+	m["2"] = "redis"
+	m["3"] = "mongodb"
+	m["4"] = "mariadb"
+
+	fmt.Println("insert y value here: ")
+	input := bufio.NewScanner(os.Stdin)
+	input.Scan()
 
 	vGeneral := tp_general{hostname: ""}
 
@@ -131,7 +147,7 @@ func main() {
 		grpcLog.Error("String to Int convert error: %s", err)
 	}
 
-	vGeneral.dest = os.Getenv("DEST")
+	vGeneral.dest = m[input.Text()]
 
 	// File and directory
 	vGeneral.filedir = os.Getenv("FILEDIR")

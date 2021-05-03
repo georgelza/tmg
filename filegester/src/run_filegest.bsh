@@ -1,11 +1,6 @@
 
 export DEBUGLEVEL=2
-export TESTSIZE=200
-
-#export DEST=postgres
-#export DEST=redis
-export DEST=mongodb
-#export DEST=mariadb
+export TESTSIZE=5
 
 export FILEDIR=input_data
 export DATAFILE=people.csv

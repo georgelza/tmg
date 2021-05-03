@@ -29,6 +29,12 @@ data:
   MONGODB_CONN_TIMEOUT: "15"
   MONGODB_URI_OPTIONS: "admin?authSource=admin&compressors=disabled&gssapiServiceName=mongodb"
 
+  MARIADB_USERNAME: root
+  MARIADB_PASSWORD: gbkb81iOal
+  MARIADB_HOST: mariadb.db.svc
+  MARIADB_PORT: "3306"
+  MARIADB_DB: json
+
   DEBUGLEVEL: "2"
 
   # To connect to the postgresql database from host:

@@ -19,9 +19,10 @@ func init() {
 }
 
 type Server struct {
-	Postgres_DBConn *database.Postgres_DBConnection
-	Redis_DBConn    *database.Redis_DBConnection
-	Mongo_DBConn    *database.Mongo_DBConnection
+	Postgres_dbConn *database.Postgres_dbConnection
+	Redis_dbConn    *database.Redis_dbConnection
+	Mongo_dbConn    *database.Mongo_dbConnection
+	Maria_dbConn    *database.Maria_dbConnection
 
 	Debug_level int
 	Hostname    string
@@ -46,7 +47,11 @@ func (s *Server) PostData(ctx context.Context, message *Message) (*Response, err
 	if message.Dest == "postgres" {
 
 		// Execute the sql query - Rewrite this to accept a JSON strincture: insert into person JSON '?';
-		err := s.Postgres_DBConn.ExecuteInsert("insert into person (uuid, seq, alpha, birthday, ccnumber, city, date, dollar, email, first, gender, last, latitude, longitude, note, path, state, street, zip) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)",
+		//err := s.Postgres_dbConn.ExecutePostgresInsert("insert into person (uuid, seq, alpha, birthday, ccnumber, city, date, dollar, email, first, gender, last, latitude, longitude, note, path, state, street, zip) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)",
+
+		vstmt := "insert into person (uuid, seq, alpha, birthday, ccnumber, city, date, dollar, email, first, gender, last, latitude, longitude, note, path, state, street, zip) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)"
+
+		s.Postgres_dbConn.Insert(vstmt,
 			message.Uuid,
 			message.Seq,
 			message.Alpha,
@@ -67,15 +72,10 @@ func (s *Server) PostData(ctx context.Context, message *Message) (*Response, err
 			message.Street,
 			message.Zip)
 
-		if err != nil {
-			grpcLog.Errorf("Had a problem inserting PostgreSQL record ", err)
-
-		}
-
 	} else if message.Dest == "redis" {
 
 		// Execute the Redis key set;
-		err := s.Redis_DBConn.SetRedisKey(message.Uuid, dat, time.Minute*1)
+		err := s.Redis_dbConn.SetKey(message.Uuid, dat, time.Minute*1)
 
 		if err != nil {
 			grpcLog.Errorf("Had a problem setting Redis record ", err)
@@ -85,20 +85,44 @@ func (s *Server) PostData(ctx context.Context, message *Message) (*Response, err
 	} else if message.Dest == "mongodb" {
 
 		// Execute the MongoDB document insert;
-		err := s.Mongo_DBConn.MongoDBStoreDoc(dat)
+		err := s.Mongo_dbConn.StoreDoc(dat)
 
 		if err != nil {
 			grpcLog.Errorf("Had a problem inserting MongoDB Document ", err)
 
 		}
+		grpcLog.Errorf("MongoDB Collection Stored ")
 
 	} else if message.Dest == "mariadb" {
 
-		//
+		vstmt := "insert into json.PERSON (uuid, seq, alpha, birthday, ccnumber, city, date, dollar, email, first, gender, last, latitude, longitude, note, path, state, street, zip, payload) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
 
-		//
+		jSONvalue, _ := json.Marshal(message)
 
-		//
+		s.Maria_dbConn.Insert(vstmt,
+			message.Uuid,
+			message.Seq,
+			message.Alpha,
+			message.Birthday,
+			message.Ccnumber,
+			message.City,
+			message.Date,
+			message.Dollar,
+			message.Email,
+			message.First,
+			message.Gender,
+			message.Last,
+			message.Latitude,
+			message.Longitude,
+			message.Note,
+			message.Path,
+			message.State,
+			message.Street,
+			message.Zip,
+			jSONvalue)
+
+	} else {
+		grpcLog.Info("!!! INVALID Dest !!!")
 
 	}
 
@@ -139,6 +163,9 @@ func prettyPrintJSON(v interface{}) {
 }
 
 /*
+* * * PostgreSQL Table * * *
+*
+*
 
 	create table person (
 		id SERIAL ,
@@ -163,12 +190,53 @@ func prettyPrintJSON(v interface{}) {
 	 	note text
 	);
 
-	CREATE TABLE users (
-  		id SERIAL PRIMARY KEY,
-  		age INT,
-  		first_name TEXT,
-  		last_name TEXT,
-  		email TEXT UNIQUE NOT NULL
-);
+
+
+* * * MariaDB Table * * *
+*
+*	JSON Column Type
+*	https://mariadb.com/kb/en/json-data-type/
+*
+********************************
+
+	drop database if exists `json`;
+	CREATE DATABASE IF NOT EXISTS `json` ;
+	USE `json`;
+
+	CREATE USER 'json'@localhost IDENTIFIED BY 'gbkb81iOal';
+	GRANT ALL PRIVILEGES ON 'json'.* TO 'json'@localhost;
+
+
+	-- Dumping structure for table json.person
+	CREATE TABLE IF NOT EXISTS PERSON (
+		`id` int(11) NOT NULL AUTO_INCREMENT,
+		`uuid` varchar(100),
+		`path` varchar(300),
+		`seq` varchar(16),
+		`alpha` varchar(30),
+		`last` varchar(50),
+		`first` varchar(50),
+		`birthday` varchar(20),
+		`gender` varchar(10),
+		`email` varchar(50),
+		`street` varchar(50),
+		`state` varchar(30),
+		`city` varchar(30),
+		`zip` varchar(20),
+		`ccnumber` varchar(16),
+		`date` varchar(16),
+		`latitude` varchar(20),
+		`longitude` varchar(20),
+		`dollar` varchar(20),
+		`note` varchar(20),
+		`payload` JSON DEFAULT '{"status": "empty"}',
+		`createddate` timestamp(6) NOT NULL DEFAULT current_timestamp(6),
+		`accountstatus` tinyint(1) DEFAULT 1,
+		`balance` DOUBLE(18,5) NOT NULL DEFAULT '1000',
+		PRIMARY KEY (`uuid`),
+		KEY `person_idx` (`id`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
 
 */

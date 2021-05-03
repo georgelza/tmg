@@ -17,6 +17,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -26,27 +27,34 @@ import (
 
 	"github.com/go-redis/redis"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var (
-	client  = &Redis_DBConnection{}
+	client  = &Redis_dbConnection{}
 	grpcLog glog.LoggerV2
 )
 
-type Postgres_DBConnection struct {
+type Postgres_dbConnection struct {
 	session *sql.DB
 }
 
-type Redis_DBConnection struct {
+type Redis_dbConnection struct {
 	c *redis.Client
 }
 
-type Mongo_DBConnection struct {
+type Mongo_dbConnection struct {
 	client     *mongo.Client
 	database   *mongo.Database
 	collection *mongo.Collection
+}
+
+type Maria_dbConnection struct {
+	session *sql.DB
 }
 
 func init() {
@@ -60,7 +68,7 @@ func init() {
 *	Postgres
 *
  */
-func Postgres_SetupDBConnection(dbname string, user string, password string, port int, host string) *Postgres_DBConnection {
+func Postgres_dbConnect(dbname string, user string, password string, port int, host string) *Postgres_dbConnection {
 
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
@@ -84,22 +92,18 @@ func Postgres_SetupDBConnection(dbname string, user string, password string, por
 	grpcLog.Infof("Postgres Successfully Pinged!")
 	grpcLog.Infof("Connected to PostgreSQL Server")
 
-	return &Postgres_DBConnection{session: db}
+	return &Postgres_dbConnection{session: db}
 }
 
-func (db *Postgres_DBConnection) ExecuteInsert(query string, values ...interface{}) error {
+func (db *Postgres_dbConnection) Insert(query string, values ...interface{}) {
 
 	if _, err := db.session.Exec(query, values...); err != nil {
 
 		grpcLog.Fatalf("Error Executing Insert : %s", fmt.Sprintf("%s: Error: %s", query, err))
-
-		return err
 	}
-
-	return nil
 }
 
-func (db *Postgres_DBConnection) Close() {
+func (db *Postgres_dbConnection) Close() {
 
 	db.session.Close()
 
@@ -112,7 +116,7 @@ func (db *Postgres_DBConnection) Close() {
  */
 
 //Initialise Redis Connection
-func Redis_SetupDBConnection(host, port string, db int, username, password string) *Redis_DBConnection {
+func Redis_dbConnect(host, port string, db int, username, password string) *Redis_dbConnection {
 
 	rInfo := fmt.Sprintf("%s:%s", host, port)
 
@@ -140,7 +144,7 @@ func Redis_SetupDBConnection(host, port string, db int, username, password strin
 }
 
 //GetKey get key
-func (client *Redis_DBConnection) GetRedisKey(key string, src interface{}) error {
+func (client *Redis_dbConnection) GetKey(key string, src interface{}) error {
 
 	value, err := client.c.Get(key).Result()
 	if err == redis.Nil || err != nil {
@@ -159,7 +163,7 @@ func (client *Redis_DBConnection) GetRedisKey(key string, src interface{}) error
 }
 
 //SetKey set key
-func (client *Redis_DBConnection) SetRedisKey(key string, value interface{}, expiration time.Duration) error {
+func (client *Redis_dbConnection) SetKey(key string, value interface{}, expiration time.Duration) error {
 
 	value, err := json.Marshal(value)
 	if err != nil {
@@ -175,7 +179,7 @@ func (client *Redis_DBConnection) SetRedisKey(key string, value interface{}, exp
 	return nil
 }
 
-func (db *Redis_DBConnection) Close() {
+func (db *Redis_dbConnection) Close() {
 
 	db.c.Close()
 
@@ -188,7 +192,7 @@ func (db *Redis_DBConnection) Close() {
  */
 //Initialise MongoDB Connection
 
-func MongoDB_SetupDBConnection(vhost, vport, vdatabase, vcollection, vusername, vpassword, vtimeout, vuri_options string) *Mongo_DBConnection {
+func MongoDB_dbConnect(vhost, vport, vdatabase, vcollection, vusername, vpassword, vtimeout, vuri_options string) *Mongo_dbConnection {
 
 	// https://www.mongodb.com/blog/post/quick-start-golang--mongodb--starting-and-setup
 	// https://www.digitalocean.com/community/tutorials/how-to-use-go-with-mongodb-using-the-mongodb-go-driver
@@ -225,22 +229,28 @@ func MongoDB_SetupDBConnection(vhost, vport, vdatabase, vcollection, vusername, 
 	}
 	grpcLog.Infof("MongoDB Successfully Pinged!")
 
+	databases, err := client.ListDatabaseNames(ctx, bson.M{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(databases)
+
 	database := client.Database(vdatabase)
 	collection := database.Collection(vcollection)
 
 	grpcLog.Infof("Connected to MongoDB Server")
 
-	return &Mongo_DBConnection{client: client, database: database, collection: collection}
+	return &Mongo_dbConnection{client: client, database: database, collection: collection}
 }
 
-func (db *Mongo_DBConnection) Disconnect() {
+func (db *Mongo_dbConnection) Disconnect() {
 
 	db.client.Disconnect(context.TODO())
 
 }
 
 //
-func (db *Mongo_DBConnection) MongoDBStoreDoc(value interface{}) error {
+func (db *Mongo_dbConnection) StoreDoc(value interface{}) error {
 
 	var ctx = context.TODO()
 
@@ -257,4 +267,53 @@ func (db *Mongo_DBConnection) MongoDBStoreDoc(value interface{}) error {
 *
 *	MariaDB
 *
+* 	https://www.golangprograms.com/example-of-golang-crud-using-mysql-from-scratch.html
+*	https://phoenixnap.com/kb/how-to-create-mariadb-user-grant-privileges
+*
  */
+func MariaDB_dbConnect(dbname, user, password, port, host string) *Maria_dbConnection {
+
+	mInfo := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, password, host, port, dbname)
+
+	grpcLog.Infof("MariaDB mInfo %s", mInfo)
+
+	grpcLog.Infof("MariaDB Compiled mInfo String!")
+
+	db, err := sql.Open("mysql", mInfo)
+	if err != nil {
+		grpcLog.Fatalf("Error validating MariaDB database params : %s", fmt.Sprintf("%s: Error: %s", dbname, err))
+
+	}
+	grpcLog.Infof("MariaDB Successfully Opened!")
+
+	err = db.Ping()
+	if err != nil {
+		grpcLog.Fatalf("Error opening connection to MariaDB database : %s", fmt.Sprintf("%s: Error: %s", dbname, err))
+
+	}
+	grpcLog.Infof("MariaDB Successfully Pinged!")
+	grpcLog.Infof("Connected to MariaDB Server")
+
+	return &Maria_dbConnection{session: db}
+}
+
+func (db *Maria_dbConnection) Insert(query string, values ...interface{}) {
+
+	insForm, err := db.session.Prepare(query)
+	if err != nil {
+		grpcLog.Fatalf("Error Preparing Insert stmt: %s", fmt.Sprintf("%s: Error: %s", query, err.Error()))
+
+	}
+
+	_, err = insForm.Exec(values...)
+	if err != nil {
+		grpcLog.Fatalf("Error Executing Insert stmt: %s", fmt.Sprintf("%s: Error: %s", query, err))
+	}
+
+}
+
+func (db *Maria_dbConnection) Close() {
+
+	db.session.Close()
+
+}
